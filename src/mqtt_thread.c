@@ -11,73 +11,33 @@
 #include <zephyr/net/socket.h>
 #include <zephyr/random/random.h>
 #include <zephyr/sys/printk.h>
+#include <zephyr/zbus/zbus.h>
 
 #include "controller.h"
 
 LOG_MODULE_DECLARE(gs, CONFIG_GETSMART_LOG_LEVEL);
 
-#define MQTT_HA_DISCOVER_TOPIC \
-  "homeassistant/light/getsmart/%s/channel/%d/config"
+#define MQTT_HA_DISCOVER_TOPIC "homeassistant/light/getsmart/%s-%d/config"
 #define MQTT_STATE_TOPIC "getsmart/device/%s/channel/%d/state"
 #define MQTT_COMMAND_TOPIC "getsmart/device/%s/channel/%d/cmnd"
 
-// static const char mqtt_state_on[] = "ON";
-// static const char mqtt_state_off[] = "OFF";
+#define MQTT_UPDATE_STATE_PAYLOAD "{\"state\":\"%s\", \"brightness\":%d}"
+
+#define MQTT_HA_DISCOVER_PAYLOAD                                      \
+  "{\"name\":\"%s\",\"command_topic\":\"%s\",\"state_topic\":\"%s\"," \
+  "\"schema\":\"json\",\"brightness\":true,\"brightness_scale\":64}"
 
 #define MQTT_STATE_ON "ON"
 
-// static struct msg_hadiscover {
-//   const char *name;
-//   const char *command_topic;
-//   const char *state_topic;
-//   const char *schema;
-//   bool brightness;
-//   int brightness_scale;
-// };
-
-static struct msg_command {
+typedef struct msg_command {
   char *state;
   int brightness;
-};
-
-// static struct msg_state {
-//   const char *state;
-//   int brightness;
-// };
-
-// static const struct json_obj_descr msq_hadiscover_descr[] = {
-//     JSON_OBJ_DESCR_PRIM(struct msg_hadiscover, name, JSON_TOK_STRING),
-//     JSON_OBJ_DESCR_PRIM(struct msg_hadiscover, command_topic,
-//     JSON_TOK_STRING), JSON_OBJ_DESCR_PRIM(struct msg_hadiscover, state_topic,
-//     JSON_TOK_STRING), JSON_OBJ_DESCR_PRIM(struct msg_hadiscover, schema,
-//     JSON_TOK_STRING), JSON_OBJ_DESCR_PRIM(struct msg_hadiscover, brightness,
-//     JSON_TOK_TRUE), JSON_OBJ_DESCR_PRIM(struct msg_hadiscover,
-//     brightness_scale,
-//                         JSON_TOK_NUMBER),
-// };
+} msg_command_t;
 
 static const struct json_obj_descr msg_command_descr[] = {
     JSON_OBJ_DESCR_PRIM(struct msg_command, state, JSON_TOK_STRING),
     JSON_OBJ_DESCR_PRIM(struct msg_command, brightness, JSON_TOK_NUMBER),
 };
-
-// static const struct json_obj_descr msg_state_descr[] = {
-//     JSON_OBJ_DESCR_PRIM(struct msg_command, state, JSON_TOK_STRING),
-//     JSON_OBJ_DESCR_PRIM(struct msg_command, brightness, JSON_TOK_NUMBER),
-// };
-
-// {
-//   "name": "Nialls' Light 3",
-//   "command_topic": "nialls_light_3/set",
-//   "state_topic": "nialls_light_3/state",
-//   "schema": "json",
-//   "brightness": true,
-//   "brightness_scale": 64
-// }
-// {
-//    "state": "ON",
-//    "brightness": 32
-// }
 
 /* Thread Stack */
 #define STACKSIZE 4096
@@ -266,9 +226,9 @@ static int subscribe_cmnds(struct mqtt_client *const client) {
 
   int res = mqtt_subscribe(client, &subscription_list);
 
-  for (int i = 0; i < controller->num_lights; i++) {
-    free((void *)topic_list[i].topic.utf8);
-  }
+  // for (int i = 0; i < controller->num_lights; i++) {
+  //   free((void *)topic_list[i].topic.utf8);
+  // }
 
   return res;
 }
@@ -277,34 +237,112 @@ static int subscribe_cmnds(struct mqtt_client *const client) {
 //   return 0;  // TODO
 // }
 
+int publish_hadiscover() {
+  // struct mqtt_publish_param param;
+  // int res = 0;
+  // for (int i = 0; i < controller->num_lights; i++) {
+  //   char buf[512];
+
+  //   sprintf(buf, MQTT_HA_DISCOVER_TOPIC, controller->device_id, i);
+  //   char *topic_name = malloc(strlen(buf));
+  //   strcpy(topic_name, buf);
+
+  //   sprintf(buf, MQTT_COMMAND_TOPIC, controller->device_id, i);
+  //   char *tn_cmnd = malloc(strlen(buf));
+  //   strcpy(tn_cmnd, buf);
+
+  //   sprintf(buf, MQTT_STATE_TOPIC, controller->device_id, i);
+  //   char *tn_state = malloc(strlen(buf));
+  //   strcpy(tn_state, buf);
+
+  //   // char device_name[20];
+  //   // sprintf(device_name, "%s-%s", controller->device_id, i);
+  //   sprintf(buf, MQTT_HA_DISCOVER_PAYLOAD, controller->device_id, tn_cmnd,
+  //           tn_state);
+  //   char *payload = malloc(strlen(buf));
+  //   strcpy(payload, buf);
+
+  //   param.message.topic.qos = MQTT_QOS_0_AT_MOST_ONCE;
+  //   param.message.topic.topic.utf8 = (uint8_t *)&topic_name;
+  //   param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
+  //   param.message.payload.data = (uint8_t *)&payload;
+  //   param.message.payload.len = strlen(param.message.payload.data);
+  //   param.message_id = sys_rand32_get();
+  //   param.dup_flag = 0U;
+  //   param.retain_flag = 0U;
+
+  //   k_mutex_lock(&sock_lock, K_FOREVER);
+  //   LOG_INF("Publishing to %s", topic_name);
+  //   res = mqtt_publish(&client, &param);
+  //   k_mutex_unlock(&sock_lock);
+
+  //   free(topic_name);
+  //   free(tn_cmnd);
+  //   free(tn_state);
+  //   free(payload);
+
+  //   if (res != 0) {
+  //     LOG_ERR("Error - Publish HA Discover: %d", res);
+  //     return res;
+  //   }
+  // }
+  return 0;
+}
+
 int publish_state_update(struct mqtt_client *client, struct state_update *su) {
   struct mqtt_publish_param param;
 
-  param.message.topic.qos = MQTT_QOS_0_AT_MOST_ONCE;
-
   char topic_name[256];
   sprintf(topic_name, MQTT_STATE_TOPIC, controller->device_id, su->channel);
-  LOG_INF("Publishing state update to %s", topic_name);
 
-  param.message.topic.topic.utf8 = (uint8_t *)MQTT_STATE_TOPIC;
+  char payload[256];
+  sprintf(payload, MQTT_UPDATE_STATE_PAYLOAD,
+          (su->state == STATE_ON) ? "ON" : "OFF", su->brightness);
+
+  param.message.topic.qos = MQTT_QOS_0_AT_MOST_ONCE;
+  param.message.topic.topic.utf8 = (uint8_t *)&topic_name;
   param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
-  param.message.payload.data = "{\"state\":\"ON\", \"brightness\":64}";
+  param.message.payload.data = (uint8_t *)&payload;
   param.message.payload.len = strlen(param.message.payload.data);
   param.message_id = sys_rand32_get();
   param.dup_flag = 0U;
   param.retain_flag = 0U;
-  LOG_INF("Calling publish");
 
+  // LOG_INF("Calling publish");
   k_mutex_lock(&sock_lock, K_FOREVER);
-  LOG_INF("Mutex - P - L");
+  // LOG_INF("Mutex - P - L");
+  LOG_INF("Publishing state update to %s", topic_name);
   int res = mqtt_publish(client, &param);
   k_mutex_unlock(&sock_lock);
-  LOG_INF("Mutex - P - U");
-
-  LOG_INF("Publish Result: %d", res);
+  // LOG_INF("Mutex - P - U");
+  if (res != 0) {
+    LOG_ERR("Error - Publish Result: %d", res);
+  }
 
   return res;
 }
+
+ZBUS_SUBSCRIBER_DEFINE(state_update_subscriber, 4);
+
+static void mqtt_subscriber_task(void) {
+  const struct zbus_channel *chan;
+
+  while (!zbus_sub_wait(&state_update_subscriber, &chan, K_FOREVER)) {
+    struct state_update update;
+
+    if (controller->state_update_channel == chan) {
+      zbus_chan_read(controller->state_update_channel, &update, K_FOREVER);
+
+      LOG_INF("From subscriber -> %d,%d,%d", update.channel, update.state,
+              update.brightness);
+
+      publish_state_update(&client, &update);
+    }
+  }
+}
+
+K_THREAD_DEFINE(subscriber_task_id, CONFIG_MAIN_STACK_SIZE,
+                mqtt_subscriber_task, NULL, NULL, NULL, 3, 0, 0);
 
 /* MQTT Message Handler */
 void mqtt_message_handler(struct mqtt_client *const client,
@@ -322,6 +360,10 @@ void mqtt_message_handler(struct mqtt_client *const client,
         if (err) {
           LOG_INF("State TOPIC Subscription request failed %d\n", err);
         }
+        // err = publish_hadiscover();
+        // if (err) {
+        //   LOG_INF("State TOPIC Subscription request failed %d\n", err);
+        // }
       }
       break;
 
@@ -473,9 +515,9 @@ void mqtt_thread(void *arg1, void *arg2, void *arg3) {
   /* Polling and event loop */
   while (1) {
     k_mutex_lock(&sock_lock, K_FOREVER);
-    LOG_INF("Mutex - L - L");
+    // LOG_INF("Mutex - L - L");
     err = poll(&fds, 1, 500);
-    LOG_INF("Poll Done: %d", 500);
+    // LOG_INF("Poll Done: %d", 500);
     if (err < 0) {
       LOG_ERR("Error in poll(): %d", errno);
       k_mutex_unlock(&sock_lock);
@@ -511,25 +553,26 @@ void mqtt_thread(void *arg1, void *arg2, void *arg3) {
       break;
     }
     k_mutex_unlock(&sock_lock);
-    LOG_INF("Mutex - L - U");
-  }
+    // LOG_INF("Mutex - L - U");
 
-  if (!connected) {
-    mqtt_abort(client);
+    if (!connected) {
+      mqtt_abort(client);
+    }
   }
 }
 
-int mqtt_thread_init(controller_t *ctrl, struct mqtt_client *cl) {
+int mqtt_thread_init(controller_t *ctrl) {
   controller = ctrl;
   mqtt_client_init(&client);
   /* Initialize MQTT client */
   k_mutex_init(&sock_lock);
   client.evt_cb = mqtt_message_handler;
+  zbus_chan_add_obs(controller->state_update_channel, &state_update_subscriber,
+                    K_MSEC(200));
 
   k_thread_create(&mqtt_thread_data, mqtt_thread_stack,
                   K_THREAD_STACK_SIZEOF(mqtt_thread_stack), mqtt_thread,
                   &client, NULL, NULL, K_PRIO_PREEMPT(7), 0, K_NO_WAIT);
 
-  cl = &client;
   return 0;
 }

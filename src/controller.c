@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/zbus/zbus.h>
 
 #include "radio.h"
 
@@ -44,14 +45,11 @@ static void update_state(struct controller *controller, int channel, int state,
   controller->state[channel].state = state,
   controller->state[channel].brightness = brightness;
 
-  // TODO Better names
-  f_sum_t *f_sum = malloc(sizeof(f_sum_t));
-  f_sum->su.channel = channel;
-  f_sum->su.state = state;
-  f_sum->su.brightness = brightness;
-  LOG_INF("Fifo Address:%p", controller->fifo);
-  k_fifo_put(controller->fifo, f_sum);
-  LOG_INF("Updated State: status:%d, brightness %d", state, brightness);
+  struct state_update update = {channel, state, brightness};
+  int res =
+      zbus_chan_pub(controller->state_update_channel, &(update), K_FOREVER);
+  LOG_INF("Updated State: channel %d, status:%d, brightness %d, Published: %d",
+          channel, state, brightness, res);
 }
 
 static int ctlr_on(struct controller *controller, int channel) {

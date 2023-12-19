@@ -10,6 +10,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/net/mqtt.h>
+#include <zephyr/zbus/zbus.h>
 
 #include "config_mgr.h"
 #include "controller.h"
@@ -17,7 +18,12 @@
 
 controller_t *controller;
 
-K_FIFO_DEFINE(fifo_state_updates);
+ZBUS_CHAN_DEFINE(chan_state_updates,   /* Name */
+                 struct state_update,  /* Message type */
+                 NULL,                 /* Validator */
+                 NULL,                 /* User data */
+                 ZBUS_OBSERVERS_EMPTY, /* observers */
+                 ZBUS_MSG_INIT(.channel = -1, .state = -1, .brightness = -1));
 
 /* 1000 msec = 1 sec */
 #define SLEEP_TIME 5000
@@ -41,25 +47,17 @@ int main(void) {
   char device_id[CFG_SIZE_DEVICEID_ID];
   cfg_get_value(CFG_DEVICEID_ID, &device_id, CFG_SIZE_DEVICEID_ID);
 
-  k_fifo_init(&fifo_state_updates);
   controller = malloc(sizeof(controller_t));
   controller->num_lights = 2;  // TODO
   controller->device_id = device_id;
-  controller->fifo = &fifo_state_updates;
+  controller->state_update_channel = (struct zbus_channel *)&chan_state_updates;
 
-  LOG_INF("This Fifo Address:%p", &fifo_state_updates);
-  LOG_INF("Controller Fifo Address:%p", controller->fifo);
-  LOG_INF("radio pointer (main): %p", (void *)&controller->radio);
+  // LOG_INF("radio pointer (main): %p", (void *)&controller->radio);
 
-  struct mqtt_client cl;
-  mqtt_thread_init(controller, &cl);
-  f_sum_t *rx_data;
+  mqtt_thread_init(controller);
 
   while (1) {
-    rx_data = k_fifo_get(&fifo_state_updates, K_FOREVER);
-    LOG_INF("RX channel:%d", rx_data->su.channel);
-    int res = publish_state_update(&cl, &rx_data->su);
-    LOG_INF("Published Update...");
+    k_sleep(K_SECONDS(5));
   }
 
   return 0;

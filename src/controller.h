@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <zephyr/kernel.h>
+#include <zephyr/zbus/zbus.h>
 
 #include "radio.h"
 
@@ -44,18 +45,18 @@ struct light_state {
 };
 
 typedef struct controller {
-  struct k_fifo *fifo;
+  struct zbus_channel *state_update_channel;
   char* device_id;
   radio_t radio;
   uint8_t num_lights;
   struct light_state state[4];
 } controller_t;
 
-typedef struct state_update {
+struct state_update {
   int channel;
   int state;
   int brightness;
-} su_t;
+};
 
 typedef struct f_sum {
   sys_snode_t snode;
