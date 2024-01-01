@@ -61,7 +61,7 @@ static controller_t *controller;
 static struct sockaddr_storage broker;
 
 /* MQTT Broker Details */
-static const char *server_addr = "192.0.2.2";
+static const char *server_addr = "192.168.1.10";
 static uint16_t server_port = 1883;
 // static const char *username = "username";
 // static const char *password = "passwd";
@@ -238,54 +238,53 @@ static int subscribe_cmnds(struct mqtt_client *const client) {
 // }
 
 int publish_hadiscover() {
-  // struct mqtt_publish_param param;
-  // int res = 0;
-  // for (int i = 0; i < controller->num_lights; i++) {
-  //   char buf[512];
+  struct mqtt_publish_param param;
+  int res = 0;
+  for (int i = 0; i < controller->num_lights; i++) {
+    char buf[512];
 
-  //   sprintf(buf, MQTT_HA_DISCOVER_TOPIC, controller->device_id, i);
-  //   char *topic_name = malloc(strlen(buf));
-  //   strcpy(topic_name, buf);
+    sprintf(buf, MQTT_HA_DISCOVER_TOPIC, controller->device_id, i);
+    char *topic_name = malloc(strlen(buf));
+    strcpy(topic_name, buf);
 
-  //   sprintf(buf, MQTT_COMMAND_TOPIC, controller->device_id, i);
-  //   char *tn_cmnd = malloc(strlen(buf));
-  //   strcpy(tn_cmnd, buf);
+    sprintf(buf, MQTT_COMMAND_TOPIC, controller->device_id, i);
+    char *tn_cmnd = malloc(strlen(buf));
+    strcpy(tn_cmnd, buf);
 
-  //   sprintf(buf, MQTT_STATE_TOPIC, controller->device_id, i);
-  //   char *tn_state = malloc(strlen(buf));
-  //   strcpy(tn_state, buf);
+    sprintf(buf, MQTT_STATE_TOPIC, controller->device_id, i);
+    char *tn_state = malloc(strlen(buf));
+    strcpy(tn_state, buf);
 
-  //   // char device_name[20];
-  //   // sprintf(device_name, "%s-%s", controller->device_id, i);
-  //   sprintf(buf, MQTT_HA_DISCOVER_PAYLOAD, controller->device_id, tn_cmnd,
-  //           tn_state);
-  //   char *payload = malloc(strlen(buf));
-  //   strcpy(payload, buf);
+    char device_name[20];
+    sprintf(device_name, "%s-%s", controller->device_id, i);
+    sprintf(buf, MQTT_HA_DISCOVER_PAYLOAD, device_name, tn_cmnd, tn_state);
+    char *payload = malloc(strlen(buf));
+    strcpy(payload, buf);
 
-  //   param.message.topic.qos = MQTT_QOS_0_AT_MOST_ONCE;
-  //   param.message.topic.topic.utf8 = (uint8_t *)&topic_name;
-  //   param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
-  //   param.message.payload.data = (uint8_t *)&payload;
-  //   param.message.payload.len = strlen(param.message.payload.data);
-  //   param.message_id = sys_rand32_get();
-  //   param.dup_flag = 0U;
-  //   param.retain_flag = 0U;
+    param.message.topic.qos = MQTT_QOS_0_AT_MOST_ONCE;
+    param.message.topic.topic.utf8 = (uint8_t *)&topic_name;
+    param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
+    param.message.payload.data = (uint8_t *)&payload;
+    param.message.payload.len = strlen(param.message.payload.data);
+    param.message_id = sys_rand32_get();
+    param.dup_flag = 0U;
+    param.retain_flag = 0U;
 
-  //   k_mutex_lock(&sock_lock, K_FOREVER);
-  //   LOG_INF("Publishing to %s", topic_name);
-  //   res = mqtt_publish(&client, &param);
-  //   k_mutex_unlock(&sock_lock);
+    k_mutex_lock(&sock_lock, K_FOREVER);
+    LOG_INF("Publishing to %s", topic_name);
+    res = mqtt_publish(&client, &param);
+    k_mutex_unlock(&sock_lock);
 
-  //   free(topic_name);
-  //   free(tn_cmnd);
-  //   free(tn_state);
-  //   free(payload);
+    free(topic_name);
+    free(tn_cmnd);
+    free(tn_state);
+    free(payload);
 
-  //   if (res != 0) {
-  //     LOG_ERR("Error - Publish HA Discover: %d", res);
-  //     return res;
-  //   }
-  // }
+    if (res != 0) {
+      LOG_ERR("Error - Publish HA Discover: %d", res);
+      return res;
+    }
+  }
   return 0;
 }
 
