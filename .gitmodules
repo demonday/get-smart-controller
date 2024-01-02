@@ -1,0 +1,3 @@
+[submodule "lib/radiolib"]
+	path = lib/radiolib
+	url = git@github.com:demonday/RadioLib.git

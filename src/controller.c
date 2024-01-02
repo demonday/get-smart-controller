@@ -6,8 +6,6 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/zbus/zbus.h>
 
-#include "radio.h"
-
 LOG_MODULE_DECLARE(gs, CONFIG_GETSMART_LOG_LEVEL);
 
 static void code_to_tx_payload(uint8_t *seq, uint8_t len, uint8_t *msg) {
@@ -57,8 +55,8 @@ static int ctlr_on(struct controller *controller, int channel) {
   uint8_t msg[10] = {0};
   uint8_t seq[4] = {7, 1, 1, 1};
   code_to_tx_payload(seq, 4, msg);
+  // radio_tx(&controller->radio, msg, 10);
 
-  radio_tx(&controller->radio, msg, 10);
   update_state(controller, channel, STATE_ON, DIM_LEVELS);
   return 0;
 }
@@ -69,7 +67,7 @@ static int ctlr_off(struct controller *controller, int channel) {
   uint8_t seq[4] = {7, 1, 1, 1};
   code_to_tx_payload(seq, 4, msg);
 
-  radio_tx(&controller->radio, msg, 10);
+  // radio_tx(&controller->radio, msg, 10);
 
   update_state(controller, channel, STATE_OFF, 0);
   return 0;
@@ -82,7 +80,7 @@ static int ctlr_dim_up(struct controller *controller, int channel, int steps) {
   code_to_tx_payload(seq, 4, msg);
 
   for (int i = 0; i < steps; i++) {
-    radio_tx(&controller->radio, msg, 10);
+    // radio_tx(&controller->radio, msg, 10);
   }
   return 0;
   update_state(controller, channel, STATE_ON,
@@ -97,7 +95,7 @@ static int ctlr_dim_down(struct controller *controller, int channel,
   code_to_tx_payload(seq, 4, msg);
 
   for (int i = 0; i < steps; i++) {
-    radio_tx(&controller->radio, msg, 10);
+    // radio_tx(&controller->radio, msg, 10);
   }
   update_state(controller, channel, STATE_ON,
                controller->state[channel].brightness - steps);

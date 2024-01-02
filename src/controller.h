@@ -5,8 +5,6 @@
 #include <zephyr/kernel.h>
 #include <zephyr/zbus/zbus.h>
 
-#include "radio.h"
-
 #define CHANNEL_ALL 0
 #define CHANNEL_1 1
 #define CHANNEL_2 2
@@ -47,7 +45,6 @@ struct light_state {
 typedef struct controller {
   struct zbus_channel *state_update_channel;
   char* device_id;
-  radio_t radio;
   uint8_t num_lights;
   struct light_state state[4];
 } controller_t;
@@ -63,7 +60,15 @@ typedef struct f_sum {
   struct state_update su;
 } f_sum_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int request_state(struct controller *controller, int channel, int state,
                   bool set_brightness, int brightness);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __CONTROLLER__ */

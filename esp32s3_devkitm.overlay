@@ -1,0 +1,46 @@
+/ {
+	aliases {
+		radio0 = &radio0;
+	};
+};
+
+&pinctrl {
+	spim3_default: spim3_default {
+		group1 {
+			pinmux = <SPIM3_MISO_GPIO12>,
+				 <SPIM3_SCLK_GPIO11>;
+		};
+		group2 {
+			pinmux = <SPIM3_MOSI_GPIO13>;
+			output-low;
+		};
+	};
+};
+
+&spi3 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+	pinctrl-0 = <&spim3_default>;
+	pinctrl-names = "default";
+	cs-gpios = <&gpio0 14 GPIO_ACTIVE_LOW>;
+	radio0: radio@0 {
+		compatible = "semtech,sx1278";
+		reg = <0>;
+		reset-gpios = <&gpio0 21 GPIO_ACTIVE_HIGH>;
+		dio-gpios =
+			/* SX1278 D00 */
+			<&gpio1 47 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>,
+			/* SX1278 D01 */
+			<&gpio1 48 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>,
+			/* SX1278 D02  */
+			<&gpio0 8 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+		/* manual-cs-gpios = <&gpio0 14 GPIO_ACTIVE_LOW>; */
+		spi-max-frequency = <1000000>;
+		/* power-amplifier-output = "pa-boost"; */
+	};
+};
+	
+&wifi {
+	status = "okay";
+};

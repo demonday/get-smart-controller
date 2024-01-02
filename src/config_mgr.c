@@ -7,6 +7,7 @@
 #include <zephyr/fs/nvs.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/storage/flash_map.h>
+
 LOG_MODULE_DECLARE(gs, CONFIG_GETSMART_LOG_LEVEL);
 
 /* 1000 msec = 1 sec */
