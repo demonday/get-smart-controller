@@ -1,4 +1,4 @@
-# Modern Replacement for "GET Smart" Wireless Lighting System Controller
+# Modern Replacement for "GET" Wireless Lighting System Controller
 
 ## Project Intro
 I have a aging Smart Wireless Lighting System from a UK company called GET, from circa 2007. Its now so old in fact, that its no longer manufatured, and the company is no longer in existance.
