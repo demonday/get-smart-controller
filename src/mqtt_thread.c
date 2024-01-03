@@ -24,9 +24,12 @@ LOG_MODULE_DECLARE(gs, CONFIG_GETSMART_LOG_LEVEL);
 
 #define MQTT_UPDATE_STATE_PAYLOAD "{\"state\":\"%s\", \"brightness\":%d}"
 
-#define MQTT_HA_DISCOVER_PAYLOAD                                      \
-  "{\"name\":\"%s\",\"command_topic\":\"%s\",\"state_topic\":\"%s\"," \
-  "\"schema\":\"json\",\"brightness\":true,\"brightness_scale\":64}"
+#define MQTT_HA_DISCOVER_PAYLOAD                                              \
+  "{\"name\":\"%s\",\"unique_id\":\"%s\", "                                   \
+  "\"command_topic\":\"%s\",\"state_topic\":\"%s\","                          \
+  "\"schema\":\"json\",\"brightness\":true,\"brightness_scale\":64,"          \
+  "\"device\": {\"identifiers\": \"[%s]\",\"name\":\"Get Smart Controller\" " \
+  "} }"
 
 #define MQTT_STATE_ON "ON"
 
@@ -194,13 +197,18 @@ static void handle_msg_command(char *topic_name, char *msg) {
 
   extract_device_info(topic_name, &device_id, &channel);
 
+  if (device_id == NULL) {
+    LOG_ERR("Unable to obtain deviceid from message. Skipping");
+    return;
+  }
+
   struct msg_command command;
   int ret = json_obj_parse(msg, strlen(msg), msg_command_descr,
                            sizeof(msg_command_descr), &command);
 
   bool set_brightness = (ret == 3);
   if (ret != 3) {
-    LOG_INF("No brightness in MQTT state message");
+    LOG_DBG("No brightness in MQTT state message");
   }
 
   LOG_INF("Device:%s, Channel:%d, State: %s, Brightness: %d", device_id,
@@ -271,9 +279,14 @@ int publish_hadiscover() {
     char *tn_state = malloc(strlen(buf));
     strcpy(tn_state, buf);
 
-    char device_name[20];
-    sprintf(device_name, "%s-%d", controller->device_id, i);
-    sprintf(buf, MQTT_HA_DISCOVER_PAYLOAD, device_name, tn_cmnd, tn_state);
+    char device_id[20];
+    sprintf(device_id, "%s-%d", controller->device_id, i);
+
+    char device_name[40];
+    sprintf(device_name, "Get Smart Light  - Channel %d", i);
+
+    sprintf(buf, MQTT_HA_DISCOVER_PAYLOAD, device_name, device_id, tn_cmnd,
+            tn_state, controller->device_id);
     char *payload = malloc(strlen(buf));
     strcpy(payload, buf);
 

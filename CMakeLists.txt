@@ -27,4 +27,4 @@ file(GLOB_RECURSE zephyr_radio_driver_sources
 
 #add_subdirectory(./lib/radiolib)
 #zephyr_compile_options(-DCONFIG_ESP_SYSTEM_GDBSTUB_RUNTIME)
-target_sources(app PRIVATE src/main.cpp src/wifi.c src/config_mgr.c src/controller.c src/mqtt_thread.c ${radiolib_sources} ${radiolib_zephyr_sources} ${zephyr_radio_driver_sources})
+target_sources(app PRIVATE src/main.cpp src/wifi.c src/config_mgr.c src/controller.c src/mqtt_thread.c src/radio.cpp ${radiolib_sources} ${radiolib_zephyr_sources} ${zephyr_radio_driver_sources})

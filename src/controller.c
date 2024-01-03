@@ -6,12 +6,17 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/zbus/zbus.h>
 
+#include "radio.h"
+
 LOG_MODULE_DECLARE(gs, CONFIG_GETSMART_LOG_LEVEL);
 
 static void code_to_tx_payload(uint8_t *seq, uint8_t len, uint8_t *msg) {
   // 010101
   // 000 010101010101010101 (9)
   // 0 0101010101010101010101 (11)
+
+  LOG_INF("Code to payload, %d", len);
+  LOG_HEXDUMP_INF(seq, len, "Seq: ");
 
   msg[0] = 0x54;
   msg[1] = 0x2A;
@@ -25,17 +30,21 @@ static void code_to_tx_payload(uint8_t *seq, uint8_t len, uint8_t *msg) {
   for (int i = 0; i < len; i++) {
     for (int j = seq[i]; j > 0; j--) {
       code |= 1 << bit;
+      /// LOG_INF("Bit %d, Code: 0x%02x", bit, code);
+
       bit -= 2;
     }
     bit -= 1;
   }
-  code |= 1 << (bit - 2);
+  // code |= 1 << (bit - 2);
+  LOG_INF("Ending at Bit %d, Code: 0x%08x", bit, code);
 
   msg[6] = code >> 24;
   msg[7] = code >> 16;
   msg[8] = code >> 8;
   msg[9] = code;
   // memcpy(&msg[6], &code, sizeof(code));
+  msg[10] = 0x00;
 }
 
 static void update_state(struct controller *controller, int channel, int state,
@@ -52,22 +61,48 @@ static void update_state(struct controller *controller, int channel, int state,
 
 static int ctlr_on(struct controller *controller, int channel) {
   LOG_INF("Radio Send: Channel %d, Code: ON", channel);
-  uint8_t msg[10] = {0};
-  uint8_t seq[4] = {7, 1, 1, 1};
-  code_to_tx_payload(seq, 4, msg);
-  // radio_tx(&controller->radio, msg, 10);
+  uint8_t msg[11];
+  uint8_t len = 0;
+  uint8_t seq[10];
 
+  if (channel == 0) {
+    len = 4;
+    uint8_t seq2[] = {4, 3, 1, 2};
+    memccpy(&seq, &seq2, 0, 4);
+  } else if (channel == 1) {
+    len = 4;
+    uint8_t seq2[] = {3, 4, 1, 2};
+    memccpy(&seq, &seq2, 0, len);
+  } else {
+    return -EINVAL;
+  }
+  code_to_tx_payload(seq, len, msg);
+  radio_tx_repeat(msg, 11, 4);
   update_state(controller, channel, STATE_ON, DIM_LEVELS);
   return 0;
 }
 
 static int ctlr_off(struct controller *controller, int channel) {
   LOG_INF("Radio Send: Channel %d, Code: OFF", channel);
-  uint8_t msg[10] = {0};
-  uint8_t seq[4] = {7, 1, 1, 1};
-  code_to_tx_payload(seq, 4, msg);
+  uint8_t msg[11];
+  uint8_t seq[10];
+  uint8_t len;
+  if (channel == 0) {
+    len = 2;
+    uint8_t seq2[] = {4, 6};
+    memccpy(&seq, &seq2, 0, 2);
 
-  // radio_tx(&controller->radio, msg, 10);
+  } else if (channel == 1) {
+    len = 2;
+    uint8_t seq2[] = {3, 7};
+    memccpy(&seq, &seq2, 0, len);
+  } else {
+    return -EINVAL;
+  }
+  code_to_tx_payload(seq, len, msg);
+  for (int i = 0; i < 4; i++) {
+    radio_tx(msg, 11);
+  }
 
   update_state(controller, channel, STATE_OFF, 0);
   return 0;
@@ -75,27 +110,73 @@ static int ctlr_off(struct controller *controller, int channel) {
 
 static int ctlr_dim_up(struct controller *controller, int channel, int steps) {
   LOG_INF("Radio Send: Channel %d, Dim Up: %d", channel, steps);
-  uint8_t msg[10] = {0};
-  uint8_t seq[4] = {7, 1, 1, 1};
-  code_to_tx_payload(seq, 4, msg);
-
-  for (int i = 0; i < steps; i++) {
-    // radio_tx(&controller->radio, msg, 10);
+  uint8_t msg[11] = {0};
+  uint8_t msg1[11] = {0};
+  uint8_t seq[10];
+  uint8_t len;
+  if (channel == 0) {
+    uint8_t len = 4;
+    uint8_t seq[] = {4, 4, 1, 1};
+    code_to_tx_payload(seq, len, msg);
+    len = 6;
+    uint8_t seq1[] = {5, 1, 1, 1, 1, 1};
+    code_to_tx_payload(seq1, len, msg1);
+    for (int i = 0; i < steps; i++) {
+      radio_tx_repeat(msg, 11, 1);
+      radio_tx_repeat(msg1, 11, 1);
+    }
+  } else if (channel == 1) {
+    uint8_t len = 4;
+    uint8_t seq[] = {3, 5, 1, 1};
+    code_to_tx_payload(seq, len, msg);
+    len = 6;
+    uint8_t seq1[] = {5, 1, 1, 1, 1, 1};
+    code_to_tx_payload(seq1, len, msg1);
+  } else {
+    return -EINVAL;
   }
-  return 0;
+  for (int i = 0; i < steps; i++) {
+    radio_tx_repeat(msg, 11, 1);
+    radio_tx_repeat(msg1, 11, 1);
+    k_sleep(K_MSEC(1));
+  }
   update_state(controller, channel, STATE_ON,
                controller->state[channel].brightness + steps);
+  return 0;
 }
 
 static int ctlr_dim_down(struct controller *controller, int channel,
                          int steps) {
   LOG_INF("Radio Send: Channel %d, Dim Down: %d", channel, steps);
-  uint8_t msg[10] = {0};
-  uint8_t seq[4] = {7, 1, 1, 1};
-  code_to_tx_payload(seq, 4, msg);
+  uint8_t msg[11] = {0};
+  uint8_t msg1[11] = {0};
 
+  uint8_t len;
+  if (channel == 0) {
+    uint8_t len = 4;
+    uint8_t seq[] = {4, 3, 2, 1};
+    code_to_tx_payload(seq, len, msg);
+    len = 6;
+    uint8_t seq1[] = {5, 1, 1, 1, 1, 1};
+    code_to_tx_payload(seq1, len, msg1);
+    for (int i = 0; i < steps; i++) {
+      radio_tx_repeat(msg, 11, 1);
+      radio_tx_repeat(msg1, 11, 1);
+    }
+  } else if (channel == 1) {
+    uint8_t len = 4;
+    uint8_t seq[] = {3, 4, 2, 1};
+    code_to_tx_payload(seq, len, msg);
+    len = 6;
+    uint8_t seq1[] = {5, 1, 1, 1, 1, 1};
+    code_to_tx_payload(seq1, len, msg1);
+  } else {
+    return -EINVAL;
+  }
   for (int i = 0; i < steps; i++) {
-    // radio_tx(&controller->radio, msg, 10);
+    radio_tx_repeat(msg, 11, 1);
+    radio_tx_repeat(msg1, 11, 1);
+    k_sleep(K_MSEC(1));
   }
   update_state(controller, channel, STATE_ON,
                controller->state[channel].brightness - steps);
