@@ -1,7 +1,7 @@
-# Modern Replacement for "GET" Wireless Lighting System Controller
+# Modern Replacement for "GET" Smart Wireless Lighting System Controller
 
 ## Project Intro
-I have a aging Smart Wireless Lighting System from a UK company called GET, from circa 2007. Its now so old in fact, that its no longer manufatured, and the company is no longer in existance.
+I have a aging Wireless Lighting System from a UK company called GET, from circa 2007. Its now so old in fact, that its no longer manufatured, and the company is no longer in existance.
 The setup includes a battery-operated controller (replacing the traditional UK light switch) and some mains supplied receivers to operate the lights. I buried the recievers behind the plasterboard in my apartment's ceiling when I installed the system.
 Its operated flawlessly since then, I don't think I've ever changed the batteries in the controller, which is testament to its solid design.
 
