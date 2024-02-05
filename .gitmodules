@@ -1,3 +1,6 @@
 [submodule "lib/radiolib"]
 	path = lib/radiolib
 	url = git@github.com:demonday/RadioLib.git
+[submodule "hardware/lib/espressif"]
+	path = hardware/lib/espressif
+	url = https://github.com/espressif/kicad-libraries
