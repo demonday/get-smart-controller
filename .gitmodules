@@ -1,5 +1,5 @@
 [submodule "lib/radiolib"]
-	path = lib/radiolib
+	path = firmware/lib/radiolib
 	url = git@github.com:demonday/RadioLib.git
 [submodule "hardware/lib/espressif"]
 	path = hardware/lib/espressif
