@@ -5686,7 +5686,7 @@
 				)
 			)
 		)
-		(property "Value" "1N5819"
+		(property "Value" "SS14"
 			(at 60.0075 148.59 0)
 			(effects
 				(font
@@ -5694,7 +5694,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Diode_SMD:D_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
+		(property "Footprint" "Diode_SMD:D_SOD-323_HandSoldering"
 			(at 59.69 147.955 0)
 			(effects
 				(font
