@@ -1150,7 +1150,17 @@
 				)
 			)
 		)
-		(property ki_fp_filters "Connector*:*_1x??_*")
+		(property "ki_fp_filters" "Connector*:*_1x??_*"
+			(at 0 0 0)
+			(layer "F.Fab")
+			(uuid "0290d1b7-2bf3-44e4-a54a-f785e4cce55a")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(path "/3eaada75-af50-41ab-936a-52705d67979e")
 		(sheetname "Root")
 		(sheetfile "get-smart-controller.kicad_sch")
@@ -1436,7 +1446,17 @@
 				)
 			)
 		)
-		(property ki_fp_filters "Connector*:*_1x??_*")
+		(property "ki_fp_filters" "Connector*:*_1x??_*"
+			(at 0 0 0)
+			(layer "F.Fab")
+			(uuid "abb62086-5356-4643-8ccd-3665d77aeb26")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(path "/6384e75e-b9f7-48eb-b293-967119939dc2")
 		(sheetname "Root")
 		(sheetfile "get-smart-controller.kicad_sch")
@@ -1636,116 +1656,6 @@
 			)
 		)
 	)
-	(footprint "TestPoint:TestPoint_Plated_Hole_D2.0mm"
-		(layer "F.Cu")
-		(uuid "57d78a5e-9075-4af4-8064-b09fb7b680cd")
-		(at 77.216 101.2698)
-		(descr "Plated Hole as test Point, diameter 2.0mm")
-		(tags "test point plated hole")
-		(property "Reference" "H2"
-			(at 0 -2.498 0)
-			(layer "F.SilkS")
-			(hide yes)
-			(uuid "a8e7b27b-1d7f-419f-9938-f4c6881cafa7")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Value" "TestPoint_Plated_Hole_D2.0mm"
-			(at 0 2.45 0)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "fcc6183c-11de-4798-aa9c-1caab56812e4")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "TestPoint:TestPoint_Plated_Hole_D2.0mm"
-			(at 0 0 0)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "143e92c8-2485-40f9-ad47-b4c380459a21")
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 0 0 0)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "cf4d6f4b-6a40-4c2b-af6e-af6dffed48da")
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 0 0 0)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "56f18bcd-ba77-48ba-9628-18cb3c339acf")
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(attr exclude_from_pos_files exclude_from_bom)
-		(fp_circle
-			(center 0 0)
-			(end 0 -1.7)
-			(stroke
-				(width 0.12)
-				(type solid)
-			)
-			(fill none)
-			(layer "F.SilkS")
-			(uuid "34224f7d-77d8-4d2a-806f-277f115c6143")
-		)
-		(fp_circle
-			(center 0 0)
-			(end 1.8 0)
-			(stroke
-				(width 0.05)
-				(type solid)
-			)
-			(fill none)
-			(layer "F.CrtYd")
-			(uuid "39e5a542-c911-4f10-a9f4-4b04bbea8b3f")
-		)
-		(fp_text user "${REFERENCE}"
-			(at 0 -2.5 0)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "66e0617c-7ec7-490b-a1fc-ba6379f277aa")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(pad "1" thru_hole circle
-			(at 0 0)
-			(size 3 3)
-			(drill 2)
-			(layers "*.Cu" "*.Mask")
-			(remove_unused_layers no)
-			(uuid "f5e88b7f-c2c0-48e1-9439-2c7dd174f404")
-		)
-	)
 	(footprint "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
 		(layer "F.Cu")
 		(uuid "6b437150-b9d0-44f3-8628-3b66b1f0e5d9")
@@ -1810,7 +1720,17 @@
 				)
 			)
 		)
-		(property ki_fp_filters "C_*")
+		(property "ki_fp_filters" "C_*"
+			(at 0 0 0)
+			(layer "F.Fab")
+			(uuid "7eeaa26a-03cd-4f64-8948-52592dac2c09")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(path "/7623ba96-4152-473f-a4a4-2eec8043127c")
 		(sheetname "Root")
 		(sheetfile "get-smart-controller.kicad_sch")
@@ -2020,7 +1940,17 @@
 				)
 			)
 		)
-		(property ki_fp_filters "R_*")
+		(property "ki_fp_filters" "R_*"
+			(at 0 0 0)
+			(layer "F.Fab")
+			(uuid "7eb431ce-1ecc-43f0-9f11-d8fb1a228979")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(path "/7911c1a0-7b21-4e45-8d92-4aaf02e801f8")
 		(sheetname "Root")
 		(sheetfile "get-smart-controller.kicad_sch")
@@ -2230,7 +2160,17 @@
 				)
 			)
 		)
-		(property ki_fp_filters "USB*")
+		(property "ki_fp_filters" "USB*"
+			(at 0 0 0)
+			(layer "F.Fab")
+			(uuid "f921e9ca-7b53-4f85-9956-c8964a60ade9")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(path "/3cbc40a5-74bb-4fa7-af2c-2df8e9b6ea58")
 		(sheetname "Root")
 		(sheetfile "get-smart-controller.kicad_sch")
@@ -2736,7 +2676,17 @@
 				)
 			)
 		)
-		(property ki_fp_filters "C_*")
+		(property "ki_fp_filters" "C_*"
+			(at 0 0 0)
+			(layer "F.Fab")
+			(uuid "310c6668-0673-4e34-9e56-aae3249e4594")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(path "/44ba942f-680c-4113-868f-c9119fc9f9f4")
 		(sheetname "Root")
 		(sheetfile "get-smart-controller.kicad_sch")
@@ -2946,7 +2896,17 @@
 				)
 			)
 		)
-		(property ki_fp_filters "Ai?Thinker?Ra?01*")
+		(property "ki_fp_filters" "Ai?Thinker?Ra?01*"
+			(at 0 0 0)
+			(layer "F.Fab")
+			(uuid "8d67b074-b9f1-4188-a494-c10bd647d908")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(path "/9ad0940a-14d1-473e-b3da-079b1e421d9e")
 		(sheetname "Root")
 		(sheetfile "get-smart-controller.kicad_sch")
@@ -3322,7 +3282,17 @@
 				)
 			)
 		)
-		(property ki_fp_filters "D*DO?41*")
+		(property "ki_fp_filters" "D*DO?41*"
+			(at 0 0 0)
+			(layer "F.Fab")
+			(uuid "ed8588f4-b3db-463e-a8c2-e55c9d77c2ad")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(path "/9d465825-6a2a-4c5d-834e-6b40bfdd4df1")
 		(sheetname "Root")
 		(sheetfile "get-smart-controller.kicad_sch")
@@ -3604,7 +3574,17 @@
 				)
 			)
 		)
-		(property ki_fp_filters "C_*")
+		(property "ki_fp_filters" "C_*"
+			(at 0 0 0)
+			(layer "F.Fab")
+			(uuid "14129e32-fb52-4534-bd6d-cdc2a72f20ab")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(path "/fe381402-ea51-4465-b377-93044b4b2496")
 		(sheetname "Root")
 		(sheetfile "get-smart-controller.kicad_sch")
@@ -3814,7 +3794,17 @@
 				)
 			)
 		)
-		(property ki_fp_filters "R_*")
+		(property "ki_fp_filters" "R_*"
+			(at 0 0 0)
+			(layer "F.Fab")
+			(uuid "6d0a4182-f61a-455e-806c-e5507b3e86d2")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(path "/b23655c6-4d73-4602-8fc8-07ff4ef40828")
 		(sheetname "Root")
 		(sheetfile "get-smart-controller.kicad_sch")
@@ -4024,7 +4014,17 @@
 				)
 			)
 		)
-		(property ki_fp_filters "C_*")
+		(property "ki_fp_filters" "C_*"
+			(at 0 0 0)
+			(layer "F.Fab")
+			(uuid "373621c8-e437-4501-85f3-b0ffe89cf433")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(path "/4e4183ce-10fc-4562-9ba4-bc43bcd19c69")
 		(sheetname "Root")
 		(sheetfile "get-smart-controller.kicad_sch")
@@ -4234,7 +4234,17 @@
 				)
 			)
 		)
-		(property ki_fp_filters "C_*")
+		(property "ki_fp_filters" "C_*"
+			(at 0 0 0)
+			(layer "F.Fab")
+			(uuid "4dcee0d0-794c-42cc-ab06-aa9c77e483df")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(path "/81a2b346-1473-4202-a597-ce3c34efb8b0")
 		(sheetname "Root")
 		(sheetfile "get-smart-controller.kicad_sch")
@@ -4444,7 +4454,17 @@
 				)
 			)
 		)
-		(property ki_fp_filters "C_*")
+		(property "ki_fp_filters" "C_*"
+			(at 0 0 0)
+			(layer "F.Fab")
+			(uuid "beaf9ea7-563f-4239-b829-c07d60a28d7c")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(path "/0ae9c6c0-cb60-4508-af98-693101b7f97f")
 		(sheetname "Root")
 		(sheetfile "get-smart-controller.kicad_sch")
@@ -4654,7 +4674,17 @@
 				)
 			)
 		)
-		(property ki_fp_filters "*polyfuse* *PTC*")
+		(property "ki_fp_filters" "*polyfuse* *PTC*"
+			(at 0 0 0)
+			(layer "F.Fab")
+			(uuid "0e4b6600-1c4d-4bf1-a077-d747fa1ac10b")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(path "/d5f1188d-05a1-4a63-a50d-571ada292235")
 		(sheetname "Root")
 		(sheetfile "get-smart-controller.kicad_sch")
@@ -4972,7 +5002,17 @@
 				)
 			)
 		)
-		(property ki_fp_filters "SOT?223*TabPin2*")
+		(property "ki_fp_filters" "SOT?223*TabPin2*"
+			(at 0 0 0)
+			(layer "F.Fab")
+			(uuid "6218032d-44e5-4691-9f0b-b0f4196f38cb")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(path "/b17e8814-5e23-4b16-811c-a7e121eadbc7")
 		(sheetname "Root")
 		(sheetfile "get-smart-controller.kicad_sch")
@@ -5230,7 +5270,17 @@
 				)
 			)
 		)
-		(property ki_fp_filters "C_*")
+		(property "ki_fp_filters" "C_*"
+			(at 0 0 0)
+			(layer "F.Fab")
+			(uuid "aef23f8e-6173-45b5-8bfb-ea7fb93dc5c9")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(path "/dc755d93-3760-4878-b0fe-fbfd2bcc06ad")
 		(sheetname "Root")
 		(sheetfile "get-smart-controller.kicad_sch")
@@ -5576,6 +5626,14 @@
 		(uuid "0add6e8b-e65b-4976-94f5-ac1e62672080")
 	)
 	(segment
+		(start 90.546 101)
+		(end 90.678 100.868)
+		(width 0.65)
+		(layer "F.Cu")
+		(net 1)
+		(uuid "101ab656-1d94-4111-bae3-127e4afead26")
+	)
+	(segment
 		(start 115.189 99.2378)
 		(end 115.189 83.7642)
 		(width 0.65)
@@ -5590,6 +5648,14 @@
 		(layer "F.Cu")
 		(net 1)
 		(uuid "14d701c8-3740-41c4-a1df-91b33780d314")
+	)
+	(segment
+		(start 80.5726 100.9)
+		(end 80.5726 102.5688)
+		(width 0.65)
+		(layer "F.Cu")
+		(net 1)
+		(uuid "194f17f3-9b48-4f13-acf5-418e5f8378f7")
 	)
 	(segment
 		(start 93.3968 101.488)
@@ -5624,12 +5690,20 @@
 		(uuid "2a834473-d69f-4930-8d45-58782467c728")
 	)
 	(segment
-		(start 80.5726 98.9188)
-		(end 80.5726 102.5688)
+		(start 79 100.9)
+		(end 80.5726 100.9)
 		(width 0.65)
 		(layer "F.Cu")
 		(net 1)
-		(uuid "2d1e33b2-4033-4f7a-8357-afdaedce1cb7")
+		(uuid "2c9d80be-3c75-4b02-8c94-d35fa37f9f39")
+	)
+	(segment
+		(start 88.1726 102.7188)
+		(end 88.1726 101)
+		(width 0.65)
+		(layer "F.Cu")
+		(net 1)
+		(uuid "31a52aff-2203-46ad-b602-648ca1a9fdea")
 	)
 	(segment
 		(start 112.4698 61.365)
@@ -5672,12 +5746,28 @@
 		(uuid "3bb49547-fd36-4759-a2cf-bb8ff248a0ee")
 	)
 	(segment
+		(start 80.5726 98.9188)
+		(end 80.5726 100.9)
+		(width 0.65)
+		(layer "F.Cu")
+		(net 1)
+		(uuid "3e8a424f-b72d-4adb-aabd-dabfbf166b95")
+	)
+	(segment
 		(start 78.5872 65.4308)
 		(end 78.5872 65.8876)
 		(width 0.55)
 		(layer "F.Cu")
 		(net 1)
 		(uuid "3f084f9a-e037-426b-a8ce-c03a00e49356")
+	)
+	(segment
+		(start 78.5368 98.4758)
+		(end 78.5368 100.4368)
+		(width 0.65)
+		(layer "F.Cu")
+		(net 1)
+		(uuid "42bd6509-4987-4e75-ba98-b4a7af83300e")
 	)
 	(segment
 		(start 99.2124 61.365)
@@ -5736,14 +5826,6 @@
 		(uuid "631e5421-7529-47b8-9103-9daf1561f271")
 	)
 	(segment
-		(start 88.1726 102.7188)
-		(end 88.1726 99.0688)
-		(width 0.65)
-		(layer "F.Cu")
-		(net 1)
-		(uuid "683b0fa5-f4a8-48fb-bcef-d49bfde51fb5")
-	)
-	(segment
 		(start 85.5976 97.6634)
 		(end 87.0458 96.2152)
 		(width 0.35)
@@ -5776,6 +5858,14 @@
 		(uuid "71740ecf-9622-4132-9297-68aa7a0c8c18")
 	)
 	(segment
+		(start 88.1726 101)
+		(end 90.546 101)
+		(width 0.65)
+		(layer "F.Cu")
+		(net 1)
+		(uuid "72dbba68-5826-4513-b2b4-2cc41e4c03ca")
+	)
+	(segment
 		(start 84.3026 65.913)
 		(end 84.3026 68.1506)
 		(width 0.65)
@@ -5790,6 +5880,14 @@
 		(layer "F.Cu")
 		(net 1)
 		(uuid "780d3bf2-173d-4cc9-ae3d-8856ca0016b1")
+	)
+	(segment
+		(start 80.5726 100.9)
+		(end 80.6164 100.9438)
+		(width 0.65)
+		(layer "F.Cu")
+		(net 1)
+		(uuid "7e1a8bb2-06a3-4c98-9b50-d8491082b70b")
 	)
 	(segment
 		(start 109.3968 101.488)
@@ -5888,12 +5986,28 @@
 		(uuid "a4c7c872-081e-4b69-80cb-289b89890887")
 	)
 	(segment
+		(start 78.5368 100.4368)
+		(end 79 100.9)
+		(width 0.65)
+		(layer "F.Cu")
+		(net 1)
+		(uuid "a5ab55a0-7372-48e4-9141-64c12c77636e")
+	)
+	(segment
 		(start 92.696 61.365)
 		(end 87.5845 61.365)
 		(width 0.55)
 		(layer "F.Cu")
 		(net 1)
 		(uuid "b13abaf5-b9fb-48c3-93fd-fe6dd638f362")
+	)
+	(segment
+		(start 88.1726 101)
+		(end 88.1726 99.0688)
+		(width 0.65)
+		(layer "F.Cu")
+		(net 1)
+		(uuid "b1d5fcb2-d844-4b27-bde3-cb4bcaed50de")
 	)
 	(segment
 		(start 78.5368 84.1559)
@@ -5912,6 +6026,14 @@
 		(uuid "b6417ecd-a3cc-49b8-93fa-f97fdb52a3e1")
 	)
 	(segment
+		(start 88.1164 100.9438)
+		(end 88.1726 101)
+		(width 0.65)
+		(layer "F.Cu")
+		(net 1)
+		(uuid "bb2eb230-52f6-404a-ba53-c4a5de763219")
+	)
+	(segment
 		(start 90.678 96.1136)
 		(end 87.1474 96.1136)
 		(width 0.65)
@@ -5926,6 +6048,14 @@
 		(layer "F.Cu")
 		(net 1)
 		(uuid "c961fc8a-3d0c-4e8e-9e58-c377ffce56d3")
+	)
+	(segment
+		(start 80.6164 100.9438)
+		(end 88.1164 100.9438)
+		(width 0.65)
+		(layer "F.Cu")
+		(net 1)
+		(uuid "cf9cb214-3aac-475b-8850-20af4404ea53")
 	)
 	(segment
 		(start 77.2471 84.1559)
