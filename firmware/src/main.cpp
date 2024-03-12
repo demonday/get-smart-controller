@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2021 Nordic Semiconductor ASA
- * SPDX-License-Identifier: Apache-2.0
- */
-
 #include <app_version.h>
 #include <stdlib.h>
 #include <string.h>
@@ -57,7 +52,6 @@ int main(void) {
   cfg_get_value(CFG_DEVICEID_ID, &device_id, CFG_SIZE_DEVICEID_ID);
 
   controller = (controller_t*)malloc(sizeof(controller_t));
-  // controller->module = &fsk;
   controller->num_lights = 2;  // TODO
   controller->device_id = device_id;
   controller->state_update_channel = (struct zbus_channel*)&chan_state_updates;

@@ -1,5 +1,3 @@
-
-
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +12,9 @@
 // #define SSID "getsmart_ap"
 #define SSID "VM3517472"
 #define PASSWORD "bts7Np7mcyMw"
+
+// #define SSID "ALHN-A898"
+// #define PASSWORD "XA5nh7pZXf"
 
 LOG_MODULE_REGISTER(wifi, CONFIG_LOG_DEFAULT_LEVEL);
 

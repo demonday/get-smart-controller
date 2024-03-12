@@ -71,6 +71,7 @@ static struct sockaddr_storage broker;
 
 /* MQTT Broker Details */
 static const char server_addr[] = "192.168.1.10";
+// static const char server_addr[] = "192.168.1.71";
 static uint16_t server_port = 1883;
 static const char *username = "demonday";
 static const char *password = "armad1ll0";
@@ -153,7 +154,6 @@ static void extract_device_info(const char *topic_name, char **device_id,
     return;
   }
 
-  LOG_INF("Extracting 1%s", topic_name);
   // Duplicate the string since strtok modifies the string
   // temp_str =  strdup(topic_name);
 
@@ -163,14 +163,11 @@ static void extract_device_info(const char *topic_name, char **device_id,
     LOG_INF("strcpy failed.");
     return;
   }
-  LOG_INF("Extracting 2 %s", temp_str);
 
   token = strtok(temp_str, "/");
-  LOG_INF("Extracting 3 %s", temp_str);
 
   while (token != NULL) {
     count++;
-    LOG_INF("Token %d:", count);
     if (count == 3) {  // Assuming device_id is always the 4 token
       *device_id = malloc(strlen(topic_name));
       strcpy(*device_id, token);
@@ -607,6 +604,9 @@ int mqtt_thread_init(controller_t *ctrl) {
   /* Initialize MQTT client */
   k_mutex_init(&sock_lock);
   client.evt_cb = mqtt_message_handler;
+
+  // subscribe for controller state update messages so they can be
+  // published to Home Assistant via MQTT.
   zbus_chan_add_obs(controller->state_update_channel, &state_update_subscriber,
                     K_MSEC(200));
 

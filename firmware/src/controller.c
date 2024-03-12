@@ -10,43 +10,71 @@
 
 LOG_MODULE_DECLARE(gs, CONFIG_GETSMART_LOG_LEVEL);
 
-static void code_to_tx_payload(uint8_t *seq, uint8_t len, uint8_t *msg) {
-  // 010101
-  // 000 010101010101010101 (9)
-  // 0 0101010101010101010101 (11)
+static const uint8_t pulses[] = PULSESEQ;
 
-  LOG_INF("Code to payload, %d", len);
-  LOG_HEXDUMP_INF(seq, len, "Seq: ");
+static uint8_t code_to_tx_payload(uint8_t *seq, uint8_t len_seq,
+                                  uint8_t **msg) {
+  LOG_INF("Code to payload, %d", len_seq);
+  LOG_HEXDUMP_INF(seq, len_seq, "Seq: ");
 
-  msg[0] = 0x54;
-  msg[1] = 0x2A;
-  msg[2] = 0xAA;
-  msg[3] = 0xA5;
-  msg[4] = 0x55;
-  msg[5] = 0x55;
+  *msg = (uint8_t *)malloc(TRANSMIT_BUF_SIZE);
+
+  (*msg)[0] = 0x54;
+  (*msg)[1] = 0x2A;
+  (*msg)[2] = 0xAA;
+  (*msg)[3] = 0xA5;
+  (*msg)[4] = 0x55;
+  (*msg)[5] = 0x55;
 
   uint32_t code = 0x40000000;
   uint8_t bit = 27;
-  for (int i = 0; i < len; i++) {
+  for (int i = 0; i < len_seq; i++) {
     for (int j = seq[i]; j > 0; j--) {
       code |= 1 << bit;
-      /// LOG_INF("Bit %d, Code: 0x%02x", bit, code);
-
       bit -= 2;
     }
     bit -= 1;
   }
   // code |= 1 << (bit - 2);
-  LOG_INF("Ending at Bit %d, Code: 0x%08x", bit, code);
 
-  msg[6] = code >> 24;
-  msg[7] = code >> 16;
-  msg[8] = code >> 8;
-  msg[9] = code;
-  // memcpy(&msg[6], &code, sizeof(code));
-  msg[10] = 0x00;
+  (*msg)[6] = code >> 24;
+  (*msg)[7] = code >> 16;
+  (*msg)[8] = code >> 8;
+  (*msg)[9] = code;
+  (*msg)[10] = 0x00;  // TODO: Not part of the message, needs more testing
+  return TRANSMIT_BUF_SIZE;
 }
 
+/**
+ * Convert the Channel and OP code combo to the bytes to be transmitted
+ * by the radio.
+ */
+static uint8_t get_radio_msg(uint8_t channel, uint8_t op, uint8_t pulse_no,
+                             uint8_t **msg) {
+  // Get the pattern to be transmitted
+  uint8_t seq[PLUSESEQ_SIZE - 1];
+  uint8_t len_seq;
+
+  uint8_t index =
+      ((channel * ROWS_PER_CHANNEL) + pulse_no + op) * PLUSESEQ_SIZE;
+
+  // First byte of the "row" is length of the pluse sequence
+  memcpy(&len_seq, &pulses, sizeof(uint8_t));
+  LOG_INF("Len of seq is:%d", len_seq);
+
+  // remainder of row is the actual sequence for this channel/op combo
+  LOG_INF("Coping from index %d",
+          (channel * PLUSESEQ_SIZE) + op + 1 + pulse_no);
+
+  memcpy(&seq, pulses + index + 1, sizeof(uint8_t) * len_seq);
+
+  // Convert it to the actual byte sequence to be transmitted
+  return code_to_tx_payload((uint8_t *)&seq, len_seq, msg);
+}
+
+/**
+ * Publish the state update message on the zbus
+ */
 static void update_state(struct controller *controller, int channel, int state,
                          int brightness) {
   controller->state[channel].state = state,
@@ -61,85 +89,42 @@ static void update_state(struct controller *controller, int channel, int state,
 
 static int ctlr_on(struct controller *controller, int channel) {
   LOG_INF("Radio Send: Channel %d, Code: ON", channel);
-  uint8_t msg[11];
-  uint8_t len = 0;
-  uint8_t seq[10];
-
-  if (channel == 0) {
-    len = 4;
-    uint8_t seq2[] = {4, 3, 1, 2};
-    memccpy(&seq, &seq2, 0, 4);
-  } else if (channel == 1) {
-    len = 4;
-    uint8_t seq2[] = {3, 4, 1, 2};
-    memccpy(&seq, &seq2, 0, len);
-  } else {
-    return -EINVAL;
-  }
-  code_to_tx_payload(seq, len, msg);
-  radio_tx_repeat(msg, 11, 4);
+  uint8_t *msg = NULL;
+  uint8_t len = get_radio_msg(channel, OP_ON, 0, &msg);
+  LOG_HEXDUMP_INF(msg, TRANSMIT_BUF_SIZE, "Msg: ");
+  radio_tx_repeat(msg, len, 4);
+  free(msg);
   update_state(controller, channel, STATE_ON, DIM_LEVELS);
   return 0;
 }
 
 static int ctlr_off(struct controller *controller, int channel) {
   LOG_INF("Radio Send: Channel %d, Code: OFF", channel);
-  uint8_t msg[11];
-  uint8_t seq[10];
-  uint8_t len;
-  if (channel == 0) {
-    len = 2;
-    uint8_t seq2[] = {4, 6};
-    memccpy(&seq, &seq2, 0, 2);
-
-  } else if (channel == 1) {
-    len = 2;
-    uint8_t seq2[] = {3, 7};
-    memccpy(&seq, &seq2, 0, len);
-  } else {
-    return -EINVAL;
-  }
-  code_to_tx_payload(seq, len, msg);
-  for (int i = 0; i < 4; i++) {
-    radio_tx(msg, 11);
-  }
-
+  uint8_t *msg = NULL;
+  uint8_t len = get_radio_msg(channel, OP_OFF, 0, &msg);
+  radio_tx_repeat(msg, len, 4);
+  free(msg);
   update_state(controller, channel, STATE_OFF, 0);
   return 0;
 }
 
 static int ctlr_dim_up(struct controller *controller, int channel, int steps) {
   LOG_INF("Radio Send: Channel %d, Dim Up: %d", channel, steps);
-  uint8_t msg[11] = {0};
-  uint8_t msg1[11] = {0};
-  uint8_t seq[10];
-  uint8_t len;
-  if (channel == 0) {
-    uint8_t len = 4;
-    uint8_t seq[] = {4, 4, 1, 1};
-    code_to_tx_payload(seq, len, msg);
-    len = 6;
-    uint8_t seq1[] = {5, 1, 1, 1, 1, 1};
-    code_to_tx_payload(seq1, len, msg1);
-    for (int i = 0; i < steps; i++) {
-      radio_tx_repeat(msg, 11, 1);
-      radio_tx_repeat(msg1, 11, 1);
-    }
-  } else if (channel == 1) {
-    uint8_t len = 4;
-    uint8_t seq[] = {3, 5, 1, 1};
-    code_to_tx_payload(seq, len, msg);
-    len = 6;
-    uint8_t seq1[] = {5, 1, 1, 1, 1, 1};
-    code_to_tx_payload(seq1, len, msg1);
-  } else {
-    return -EINVAL;
-  }
+  uint8_t *msg0 = NULL;
+  uint8_t *msg1 = NULL;
+
+  uint8_t len0 = get_radio_msg(channel, OP_DIM_DOWN, 0, &msg0);
+  uint8_t len1 = get_radio_msg(channel, OP_DIM_DOWN, 1, &msg1);
+
   for (int i = 0; i < steps; i++) {
-    radio_tx_repeat(msg, 11, 1);
-    radio_tx_repeat(msg1, 11, 1);
-    k_sleep(K_MSEC(1));
+    radio_tx(msg0, len0);
+    radio_tx(msg1, len1);
+    k_sleep(K_MSEC(5));
   }
+
+  free(msg0);
+  free(msg1);
+
   update_state(controller, channel, STATE_ON,
                controller->state[channel].brightness + steps);
   return 0;
@@ -148,47 +133,42 @@ static int ctlr_dim_up(struct controller *controller, int channel, int steps) {
 static int ctlr_dim_down(struct controller *controller, int channel,
                          int steps) {
   LOG_INF("Radio Send: Channel %d, Dim Down: %d", channel, steps);
-  uint8_t msg[11] = {0};
-  uint8_t msg1[11] = {0};
+  uint8_t *msg0 = NULL;
+  uint8_t *msg1 = NULL;
+  uint8_t len0 = get_radio_msg(channel, OP_DIM_DOWN, 0, &msg0);
+  uint8_t len1 = get_radio_msg(channel, OP_DIM_DOWN, 1, &msg1);
 
-  uint8_t len;
-  if (channel == 0) {
-    uint8_t len = 4;
-    uint8_t seq[] = {4, 3, 2, 1};
-    code_to_tx_payload(seq, len, msg);
-    len = 6;
-    uint8_t seq1[] = {5, 1, 1, 1, 1, 1};
-    code_to_tx_payload(seq1, len, msg1);
-    for (int i = 0; i < steps; i++) {
-      radio_tx_repeat(msg, 11, 1);
-      radio_tx_repeat(msg1, 11, 1);
-    }
-  } else if (channel == 1) {
-    uint8_t len = 4;
-    uint8_t seq[] = {3, 4, 2, 1};
-    code_to_tx_payload(seq, len, msg);
-    len = 6;
-    uint8_t seq1[] = {5, 1, 1, 1, 1, 1};
-    code_to_tx_payload(seq1, len, msg1);
-  } else {
-    return -EINVAL;
-  }
+  radio_tx(msg0, len0);
+  radio_tx(msg1, len1);
+
   for (int i = 0; i < steps; i++) {
-    radio_tx_repeat(msg, 11, 1);
-    radio_tx_repeat(msg1, 11, 1);
-    k_sleep(K_MSEC(1));
+    radio_tx(msg0, len0);
+    radio_tx(msg1, len1);
+    k_sleep(K_MSEC(5));
   }
+  free(msg0);
+  free(msg1);
   update_state(controller, channel, STATE_ON,
                controller->state[channel].brightness - steps);
   return 0;
 }
 
+/**
+ * Transmit the required radio signals to transition the lights
+ * from current state to the requested, and if successful publish
+ * the new state on the zbus.
+ */
 int request_state(struct controller *controller, int channel, int state,
                   bool set_brightness, int brightness) {
   LOG_INF("Current State: status:%d, brightness %d",
           controller->state[channel].state,
           controller->state[channel].brightness);
   LOG_INF("Request State: status:%d, brightness %d", state, brightness);
+
+  if (channel >= controller->num_lights) {
+    LOG_ERR("Light for channel %d not configured.", channel);
+    return -EINVAL;
+  }
 
   if (controller->state[channel].state != state) {
     if (state == STATE_ON) {
@@ -199,7 +179,7 @@ int request_state(struct controller *controller, int channel, int state,
   }
   if (set_brightness && controller->state[channel].brightness != brightness) {
     if (brightness <= 1) {
-      ctlr_off(controller, channel);
+      // ctlr_off(controller, channel);
     } else if (brightness > DIM_LEVELS) {
       LOG_ERR("Cannot exceed %d brightness levels", DIM_LEVELS);
     } else {
