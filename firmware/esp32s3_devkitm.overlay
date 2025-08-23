@@ -4,6 +4,18 @@
 	};
 };
 
+/ {
+chosen {
+	zephyr,console = &usb_serial;
+	zephyr,shell-uart = &usb_serial;
+	};
+};
+
+&usb_serial {
+	status = "okay";
+};
+
+
 &pinctrl {
 	spim3_default: spim3_default {
 		group1 {
@@ -43,4 +55,10 @@
 	
 &wifi {
 	status = "okay";
+};
+
+/ {
+    aliases {
+        watchdog0 = &wdt0;
+    };
 };

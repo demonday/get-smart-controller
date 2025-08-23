@@ -7,203 +7,274 @@
 #include <zephyr/net/net_event.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/wifi_mgmt.h>
+#include <zephyr/net/net_ip.h>
 
-// TODO: make ap name dynamic based on device (e.g. MAC)
-// #define SSID "getsmart_ap"
-#define SSID "VM3517472"
-#define PASSWORD "bts7Np7mcyMw"
+#include "wifi.h"
 
 // #define SSID "ALHN-A898"
 // #define PASSWORD "XA5nh7pZXf"
 
+#define SSID "VM3517472"
+#define PASSWORD "bts7Np7mcyMw"
+
+#define WIFI_RECONNECT_DELAY_MS 5000
+#define WIFI_DHCP_RENEW_INTERVAL_MS (60 * 60 * 1000) // 1 hour
+
 LOG_MODULE_REGISTER(wifi, CONFIG_LOG_DEFAULT_LEVEL);
 
-static struct net_mgmt_event_callback wifi_cb;
-static struct net_mgmt_event_callback ipv4_cb;
+static struct net_mgmt_event_callback wifi_mgmt_cb;
+static struct net_mgmt_event_callback ip_mgmt_cb;
+static struct k_work_delayable wifi_reconnect_work;
+static struct k_work_delayable wifi_dhcp_renew_work;
 
-static void handle_wifi_connect_result(struct net_mgmt_event_callback *cb) {
-  const struct wifi_status *status = (const struct wifi_status *)cb->info;
+static void wifi_schedule_dhcp_renew(void);
 
-  if (status->status) {
-    LOG_INF("Connection request failed (%d)\n", status->status);
-  } else {
-    LOG_INF("Connected\n");
-    // k_sem_give(&wifi_connected);
-  }
+static void schedule_wifi_reconnect(void)
+{
+  LOG_INF("Scheduling WiFi reconnection in %d ms", WIFI_RECONNECT_DELAY_MS);
+  k_work_schedule(&wifi_reconnect_work, K_MSEC(WIFI_RECONNECT_DELAY_MS));
 }
 
-static void handle_wifi_disconnect_result(struct net_mgmt_event_callback *cb) {
-  const struct wifi_status *status = (const struct wifi_status *)cb->info;
-
-  if (status->status) {
-    LOG_INF("Disconnection request (%d)\n", status->status);
-  } else {
-    LOG_INF("Disconnected\n");
-    // k_sem_take(&wifi_connected, K_NO_WAIT);
-  }
+static void wifi_reconnect_work_handler(struct k_work *work)
+{
+  LOG_INF("Attempting to reconnect to WiFi network");
+  wifi_sta_connect();
 }
 
-static void handle_ipv4_result(struct net_if *iface) {
-  int i = 0;
-
-  for (i = 0; i < NET_IF_MAX_IPV4_ADDR; i++) {
-    char buf[NET_IPV4_ADDR_LEN];
-
-    if (iface->config.ip.ipv4->unicast[i].addr_type != NET_ADDR_DHCP) {
-      continue;
-    }
-
-    LOG_INF("IPv4 address: %s\n",
-            net_addr_ntop(AF_INET,
-                          &iface->config.ip.ipv4->unicast[i].address.in_addr,
-                          buf, sizeof(buf)));
-    LOG_INF("Subnet: %s\n",
-            net_addr_ntop(AF_INET, &iface->config.ip.ipv4->netmask, buf,
-                          sizeof(buf)));
-    LOG_INF("Router: %s\n", net_addr_ntop(AF_INET, &iface->config.ip.ipv4->gw,
-                                          buf, sizeof(buf)));
-  }
-
-  // k_sem_give(&ipv4_address_obtained);
-}
-
-static void wifi_mgmt_event_handler(struct net_mgmt_event_callback *cb,
-                                    uint32_t mgmt_event, struct net_if *iface) {
-  switch (mgmt_event) {
-    case NET_EVENT_WIFI_CONNECT_RESULT:
-      handle_wifi_connect_result(cb);
-      break;
-
-    case NET_EVENT_WIFI_DISCONNECT_RESULT:
-      handle_wifi_disconnect_result(cb);
-      break;
-
-    case NET_EVENT_IPV4_ADDR_ADD:
-      handle_ipv4_result(iface);
-      break;
-
-    default:
-      break;
-  }
-}
-
-void wifi_status(void) {
-  struct net_if *iface = net_if_get_default();
-
-  struct wifi_iface_status status = {0};
-
-  if (net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, iface, &status,
-               sizeof(struct wifi_iface_status))) {
-    LOG_INF("WiFi Status Request Failed\n");
-  }
-
-  LOG_INF("\n");
-
-  if (status.state >= WIFI_STATE_ASSOCIATED) {
-    LOG_INF("SSID: %-32s\n", status.ssid);
-    LOG_INF("Band: %s\n", wifi_band_txt(status.band));
-    LOG_INF("Channel: %d\n", status.channel);
-    LOG_INF("Security: %s\n", wifi_security_txt(status.security));
-    LOG_INF("RSSI: %d\n", status.rssi);
-  }
-}
-
-int wifi_sta_connect() {
+static void wifi_dhcp_renew_work_handler(struct k_work *work)
+{
   struct net_if *iface = net_if_get_first_wifi();
 
-  if (iface == NULL) {
-    LOG_INF("No interface found. Exit.\n");
-    return -1;
-  } else {
-    LOG_INF("Interface found.\n");
+  if (!iface)
+  {
+    LOG_ERR("Failed to get default network interface for DHCP renew");
+    return;
   }
 
-  static struct wifi_connect_req_params cnx_params;
+  LOG_INF("Requesting DHCP renewal");
+  net_dhcpv4_start(iface);
+  LOG_INF("DHCP renewal request sent");
+
+  wifi_schedule_dhcp_renew();
+}
+
+static void wifi_schedule_dhcp_renew(void)
+{
+  LOG_INF("Scheduling next DHCP renewal in %d ms", WIFI_DHCP_RENEW_INTERVAL_MS);
+  k_work_schedule(&wifi_dhcp_renew_work, K_MSEC(WIFI_DHCP_RENEW_INTERVAL_MS));
+}
+
+static void handle_wifi_connect_result(const struct wifi_status *status)
+{
+  if (!status)
+  {
+    LOG_ERR("WiFi connect result: NULL status received");
+    return;
+  }
+
+  if (status->status)
+  {
+    LOG_ERR("Connection request failed with status code: %d", status->status);
+    schedule_wifi_reconnect();
+  }
+  else
+  {
+    struct net_if *iface = net_if_get_first_wifi();
+
+    LOG_INF("Successfully connected to WiFi network");
+    wifi_status();
+    net_dhcpv4_start(iface);
+    wifi_schedule_dhcp_renew();
+  }
+}
+
+static void handle_wifi_disconnect_result(const struct wifi_status *status)
+{
+  if (!status)
+  {
+    LOG_ERR("WiFi disconnect result: NULL status received");
+    return;
+  }
+
+  if (status->status)
+  {
+    LOG_WRN("Disconnection requested with status code: %d", status->status);
+  }
+  else
+  {
+    LOG_INF("Disconnected from WiFi network");
+  }
+
+  schedule_wifi_reconnect();
+}
+
+static void handle_ipv4_result(struct net_if *iface)
+{
+  if (!iface || !iface->config.ip.ipv4)
+  {
+    LOG_ERR("Invalid iface or ipv4 config");
+    return;
+  }
+
+  LOG_INF("Processing IPv4 address assignment for interface: %p", iface);
+
+  for (int i = 0; i < NET_IF_MAX_IPV4_ADDR; i++)
+  {
+    const struct net_if_addr_ipv4 *ipv4_addr = &iface->config.ip.ipv4->unicast[i];
+    char buf[NET_IPV4_ADDR_LEN];
+
+    LOG_INF("IPv4 Address: %s", net_addr_ntop(AF_INET, &ipv4_addr->ipv4.address.in_addr.s4_addr, buf, sizeof(buf)));
+    struct in_addr netmask = net_if_ipv4_get_netmask_by_addr(iface, &ipv4_addr->ipv4.address.in_addr);
+    LOG_INF("Subnet Mask: %s", net_addr_ntop(AF_INET, &netmask, buf, sizeof(buf)));
+    LOG_INF("Default Gateway: %s", net_addr_ntop(AF_INET, &iface->config.ip.ipv4->gw, buf, sizeof(buf)));
+  }
+}
+
+static void wifi_mgmt_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_event, struct net_if *iface)
+{
+  if (!cb)
+  {
+    LOG_ERR("Net management event callback is NULL");
+    return;
+  }
+
+  switch (mgmt_event)
+  {
+  case NET_EVENT_WIFI_CONNECT_RESULT:
+    LOG_INF("Received NET_EVENT_WIFI_CONNECT_RESULT");
+    handle_wifi_connect_result((const struct wifi_status *)cb->info);
+    break;
+  case NET_EVENT_WIFI_DISCONNECT_RESULT:
+    LOG_INF("Received NET_EVENT_WIFI_DISCONNECT_RESULT");
+    handle_wifi_disconnect_result((const struct wifi_status *)cb->info);
+    break;
+  default:
+    LOG_WRN("Unhandled wifi event: 0x%x", mgmt_event);
+    break;
+  }
+}
+
+static void ip_mgmt_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_event, struct net_if *iface)
+{
+  LOG_INF("ip_mgmt_event_handler called with event: 0x%x", mgmt_event);
+
+  if (!cb)
+  {
+    LOG_ERR("Net management event callback is NULL");
+    return;
+  }
+  
+  switch (mgmt_event)
+  {
+  case NET_EVENT_IPV4_ADDR_ADD:
+  case NET_EVENT_IPV4_DHCP_BOUND:
+    LOG_INF("Received NET_EVENT_IPV4 address event");
+    handle_ipv4_result(iface);
+    break;
+  case NET_EVENT_IPV4_ADDR_DEL:
+    LOG_WRN("IPv4 address was removed! Scheduling reconnect.");
+    schedule_wifi_reconnect();
+    break;
+  case NET_EVENT_IPV4_DHCP_STOP:
+    LOG_WRN("DHCP client stopped unexpectedly! Scheduling reconnect.");
+    schedule_wifi_reconnect();
+    break;
+  case NET_EVENT_IPV4_CMD_DHCP_START:
+    LOG_INF("Started DHCP client successfully.");
+    break;
+  default:
+    LOG_WRN("Unhandled IP event: 0x%x", mgmt_event);
+    break;
+  }
+}
+
+void wifi_status(void)
+{
+  struct net_if *iface = net_if_get_default();
+  struct wifi_iface_status status = {0};
+
+  if (!iface)
+  {
+    LOG_ERR("Failed to get default network interface");
+    return;
+  }
+
+  if (net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, iface, &status, sizeof(status)))
+  {
+    LOG_ERR("WiFi Status Request Failed");
+    return;
+  }
+
+  if (status.state >= WIFI_STATE_ASSOCIATED)
+  {
+    LOG_INF("WiFi Interface Status:");
+    LOG_INF("SSID: %-32s", status.ssid);
+    LOG_INF("Band: %s", wifi_band_txt(status.band));
+    LOG_INF("Channel: %d", status.channel);
+    LOG_INF("Security: %s", wifi_security_txt(status.security));
+    LOG_INF("RSSI: %d dBm", status.rssi);
+  }
+  else
+  {
+    LOG_INF("WiFi not associated yet");
+  }
+}
+
+static int wifi_sta_connect(void)
+{
+  struct net_if *iface = net_if_get_first_wifi();
+
+  if (!iface)
+  {
+    LOG_ERR("No WiFi interface found. Aborting connection attempt.");
+    return -ENODEV;
+  }
+
+  static struct wifi_connect_req_params cnx_params = {0};
 
   cnx_params.channel = WIFI_CHANNEL_ANY;
   cnx_params.ssid = SSID;
   cnx_params.ssid_length = strlen(SSID);
   cnx_params.psk = PASSWORD;
   cnx_params.psk_length = strlen(PASSWORD);
-  // cnx_params.sae_password = PASSWORD;
-  // cnx_params.sae_password_length = strlen(PASSWORD);
-  cnx_params.security = 1;
+  cnx_params.security = WIFI_SECURITY_TYPE_PSK;
   cnx_params.band = WIFI_FREQ_BAND_2_4_GHZ;
   cnx_params.mfp = WIFI_MFP_DISABLE;
 
-  LOG_INF("Connecting to SSID: %s\n", cnx_params.ssid);
+  LOG_INF("Initiating connection to SSID: %s", cnx_params.ssid);
 
-  if (net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &cnx_params,
-               sizeof(struct wifi_connect_req_params))) {
-    LOG_INF("WiFi Connection Request Failed\n");
+  if (net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &cnx_params, sizeof(cnx_params)))
+  {
+    LOG_ERR("WiFi connection request failed");
     return -ENETDOWN;
   }
-
-  wifi_status();
-  return 1;
-}
-
-int wifi_ap_enable() {
-  struct net_if *iface = net_if_get_first_wifi();
-  LOG_INF("Enter: wifi_ap_enable");
-
-  if (iface == NULL) {
-    LOG_INF("No interface found. Exit");
-    return -1;
-  } else {
-    LOG_INF("Interface found.");
-  }
-
-  static struct wifi_connect_req_params cnx_params;
-
-  cnx_params.band = WIFI_FREQ_BAND_UNKNOWN;
-  cnx_params.channel = WIFI_CHANNEL_ANY;
-  cnx_params.ssid = SSID;
-  cnx_params.ssid_length = strlen(SSID);
-  cnx_params.security = WIFI_SECURITY_TYPE_NONE;
-
-  int ret;
-  LOG_INF("Trying to enter AP mode for %s\n", iface->if_dev->dev->name);
-  ret = net_mgmt(NET_REQUEST_WIFI_AP_ENABLE, iface, &cnx_params,
-                 sizeof(struct wifi_connect_req_params));
-  if (ret) {
-    LOG_INF("AP mode enable failed: %s\n", strerror(-ret));
-    return -ENETDOWN;
-  }
-
-  LOG_INF("AP mode enabled. SSID: %s\n", SSID);
-
-  return 1;
-}
-
-int wifi_ap_disable() {
-  struct net_if *iface = net_if_get_first_wifi();
-  int ret;
-
-  ret = net_mgmt(NET_REQUEST_WIFI_AP_DISABLE, iface, NULL, 0);
-  if (ret) {
-    LOG_INF("AP mode disable failed: %s\n", strerror(-ret));
-    return -ENETDOWN;
-  }
-
-  LOG_INF("AP mode disabled\n");
 
   return 0;
 }
 
-int wifi_init() {
-  LOG_INF("WiFi Example\nBoard: %s\n", CONFIG_BOARD);
+int wifi_init(void)
+{
+  LOG_INF("Initializing WiFi subsystem on board: %s", CONFIG_BOARD);
 
-  net_mgmt_init_event_callback(
-      &wifi_cb, wifi_mgmt_event_handler,
-      NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT);
+  net_mgmt_init_event_callback(&wifi_mgmt_cb, wifi_mgmt_event_handler,
+                               NET_EVENT_WIFI_CONNECT_RESULT |
+                                   NET_EVENT_WIFI_DISCONNECT_RESULT);
+  net_mgmt_add_event_callback(&wifi_mgmt_cb);
 
-  net_mgmt_init_event_callback(&ipv4_cb, wifi_mgmt_event_handler,
-                               NET_EVENT_IPV4_ADDR_ADD);
+  net_mgmt_init_event_callback(&ip_mgmt_cb, ip_mgmt_event_handler,
+                               NET_EVENT_IPV4_ADDR_ADD |
+                                   NET_EVENT_IPV4_ADDR_DEL |
+                                   NET_EVENT_IPV4_DHCP_STOP |
+                                   NET_EVENT_IPV4_DHCP_BOUND);
+  net_mgmt_add_event_callback(&ip_mgmt_cb);
 
-  net_mgmt_add_event_callback(&wifi_cb);
-  // net_mgmt_add_event_callback(&ipv4_cb);
-  LOG_INF("WiFi Init Complete\n");
+  k_work_init_delayable(&wifi_reconnect_work, wifi_reconnect_work_handler);
+  k_work_init_delayable(&wifi_dhcp_renew_work, wifi_dhcp_renew_work_handler);
 
+  k_sleep(K_MSEC(500));
+
+  wifi_sta_connect();
+
+  LOG_INF("WiFi subsystem initialization complete");
   return 0;
 }

@@ -1,13 +1,15 @@
 
+#include <zephyr/net/net_if.h>
+
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-int wifi_ap_enable();
-int wifi_sta_connect();
-int wifi_ap_disable();
-int wifi_init();
-int wifi_status();
+    static int wifi_sta_connect(void);
+    static void handle_ipv4_result(struct net_if *iface);
+    int wifi_init();
+    void wifi_status();
 
 #ifdef __cplusplus
 }

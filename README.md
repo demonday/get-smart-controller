@@ -14,6 +14,8 @@ Typically for me, I'm also diving into a few related technologies as part of thi
 - **Home Assistant Integration**: I use HA for all my other stuff so this is given.
 - **Thread/Matter**: I have tons Zigbee devices already, and want learn more about the newer connected device protocols.
 
+Built with Zephyr v3.6.0
+
 # Reverse Engineering the Controller
 After some snooping inside the contoller it seems to be 433Mhz FSK, based on a HiMark TX4915-LF RF chip. Only datasheets HiMark TX4915 say its for ASK, but the silksreen on the transmiter clearly says 433 FSK.
 

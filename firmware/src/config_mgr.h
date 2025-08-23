@@ -15,14 +15,15 @@
 // #endif
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-int cfg_init();
-void cfg_print();
-bool cfg_inc_boot();
-ssize_t cfg_get_value(int key, void* value, int len);
-ssize_t cfg_set_value(int key, void* value, int len);
+    int cfg_init();
+    void cfg_print();
+    bool cfg_inc_boot();
+    ssize_t cfg_get_value(int key, void *value, int len);
+    ssize_t cfg_set_value(int key, void *value, int len);
 
 #ifdef __cplusplus
 }

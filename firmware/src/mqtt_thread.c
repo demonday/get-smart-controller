@@ -33,7 +33,8 @@ LOG_MODULE_DECLARE(gs, CONFIG_GETSMART_LOG_LEVEL);
 
 #define MQTT_STATE_ON "ON"
 
-typedef struct msg_command {
+typedef struct msg_command
+{
   char *state;
   int brightness;
 } msg_command_t;
@@ -70,12 +71,14 @@ static controller_t *controller;
 static struct sockaddr_storage broker;
 
 /* MQTT Broker Details */
-static const char server_addr[] = "192.168.1.10";
+static const char server_addr[] = "192.168.0.10";
 // static const char server_addr[] = "192.168.1.71";
 static uint16_t server_port = 1883;
 static const char *username = "demonday";
 static const char *password = "armad1ll0";
-#define MQTT_CLIENTID "getsmart_publisher"
+
+static struct mqtt_utf8 username_utf8;
+static struct mqtt_utf8 password_utf8;
 
 /* Client Identifer TODO: Based on MAC*/
 static const char *client_id = "get-smart-MAC";
@@ -90,10 +93,14 @@ static uint8_t payload_buf[CONFIG_MQTT_PAYLOAD_BUFFER_SIZE];
 /* File descriptor for socket */
 static struct pollfd fds;
 
-int fds_init(struct pollfd *fds) {
-  if (client.transport.type == MQTT_TRANSPORT_NON_SECURE) {
+int fds_init(struct pollfd *fds)
+{
+  if (client.transport.type == MQTT_TRANSPORT_NON_SECURE)
+  {
     fds->fd = client.transport.tcp.sock;
-  } else {
+  }
+  else
+  {
     return -ENOTSUP;
   }
 
@@ -102,7 +109,8 @@ int fds_init(struct pollfd *fds) {
   return 0;
 }
 
-static void data_print(uint8_t *prefix, uint8_t *data, size_t len) {
+static void data_print(uint8_t *prefix, uint8_t *data, size_t len)
+{
   char buf[len + 1];
 
   memcpy(buf, data, len);
@@ -110,24 +118,30 @@ static void data_print(uint8_t *prefix, uint8_t *data, size_t len) {
   LOG_INF("%s%s", (char *)prefix, (char *)buf);
 }
 
-static int get_received_payload(size_t length) {
+static int get_received_payload(size_t length)
+{
   int ret;
   int err = 0;
 
   /* Return an error if the payload is larger than the payload buffer.
    * Note: To allow new messages, we have to read the payload before returning.
    */
-  if (length > sizeof(payload_buf)) {
+  if (length > sizeof(payload_buf))
+  {
     err = -EMSGSIZE;
   }
 
   /* Truncate payload until it fits in the payload buffer. */
-  while (length > sizeof(payload_buf)) {
+  while (length > sizeof(payload_buf))
+  {
     ret = mqtt_read_publish_payload_blocking(&client, payload_buf,
                                              (length - sizeof(payload_buf)));
-    if (ret == 0) {
+    if (ret == 0)
+    {
       return -EIO;
-    } else if (ret < 0) {
+    }
+    else if (ret < 0)
+    {
       return ret;
     }
 
@@ -135,7 +149,8 @@ static int get_received_payload(size_t length) {
   }
 
   ret = mqtt_readall_publish_payload(&client, payload_buf, length);
-  if (ret) {
+  if (ret)
+  {
     return ret;
   }
 
@@ -143,14 +158,16 @@ static int get_received_payload(size_t length) {
 }
 
 static void extract_device_info(const char *topic_name, char **device_id,
-                                int *channel) {
+                                int *channel)
+{
   // getsmart/device/0f3def/channel/0/cmnd
 
   char *token, *temp_str;
   int count = 0;
 
   // Ensure the input string is not NULL
-  if (topic_name == NULL) {
+  if (topic_name == NULL)
+  {
     return;
   }
 
@@ -159,42 +176,49 @@ static void extract_device_info(const char *topic_name, char **device_id,
 
   temp_str = malloc(strlen(topic_name));
   strcpy(temp_str, topic_name);
-  if (temp_str == NULL) {
+  if (temp_str == NULL)
+  {
     LOG_INF("strcpy failed.");
     return;
   }
 
   token = strtok(temp_str, "/");
 
-  while (token != NULL) {
+  while (token != NULL)
+  {
     count++;
-    if (count == 3) {  // Assuming device_id is always the 4 token
+    if (count == 3)
+    { // Assuming device_id is always the 4 token
       *device_id = malloc(strlen(topic_name));
       strcpy(*device_id, token);
       //*device_id = strdup(token);
-      if (*device_id == NULL) {
+      if (*device_id == NULL)
+      {
         // Handle memory allocation failure
         free(temp_str);
         return;
       }
     }
-    if (count == 5) {  // Assuming the channel is always the 5
+    if (count == 5)
+    { // Assuming the channel is always the 5
       *channel = atoi(token);
       break;
     }
     token = strtok(NULL, "/");
   }
 
-  free(temp_str);  // Free the temporary string
+  free(temp_str); // Free the temporary string
 }
 
-static void handle_msg_command(char *topic_name, char *msg) {
+static void handle_msg_command(char *topic_name, char *msg)
+{
   char *device_id = NULL;
   int channel = 0;
 
   extract_device_info(topic_name, &device_id, &channel);
 
-  if (device_id == NULL) {
+  if (device_id == NULL)
+  {
     LOG_ERR("Unable to obtain deviceid from message. Skipping");
     return;
   }
@@ -204,7 +228,8 @@ static void handle_msg_command(char *topic_name, char *msg) {
                            sizeof(msg_command_descr), &command);
 
   bool set_brightness = (ret == 3);
-  if (ret != 3) {
+  if (ret != 3)
+  {
     LOG_DBG("No brightness in MQTT state message");
   }
 
@@ -215,16 +240,19 @@ static void handle_msg_command(char *topic_name, char *msg) {
       (strcmp(command.state, MQTT_STATE_ON) == 0) ? STATE_ON : STATE_OFF;
   request_state(controller, channel, state, set_brightness, command.brightness);
 
-  if (device_id != NULL) {
-    free(device_id);  // Free the device_id string
+  if (device_id != NULL)
+  {
+    free(device_id); // Free the device_id string
   }
 }
 
 /* Subscribe to the MQTT Topic(s) to control the device */
-static int subscribe_cmnds() {
+static int subscribe_cmnds()
+{
   struct mqtt_topic topic_list[4];
 
-  for (int i = 0; i < controller->num_lights; i++) {
+  for (int i = 0; i < controller->num_lights; i++)
+  {
     char buf[256];
     sprintf(buf, MQTT_COMMAND_TOPIC, controller->device_id, i);
     char *topic_name = malloc(strlen(buf) + 1);
@@ -258,10 +286,12 @@ static int subscribe_cmnds() {
 //   return 0;  // TODO
 // }
 
-int publish_hadiscover() {
+int publish_hadiscover()
+{
   struct mqtt_publish_param param;
   int res = 0;
-  for (int i = 0; i < controller->num_lights; i++) {
+  for (int i = 0; i < controller->num_lights; i++)
+  {
     char buf[512];
 
     sprintf(buf, MQTT_HA_DISCOVER_TOPIC, controller->device_id, i);
@@ -306,7 +336,8 @@ int publish_hadiscover() {
     free(tn_state);
     free(payload);
 
-    if (res != 0) {
+    if (res != 0)
+    {
       LOG_ERR("Error - Publish HA Discover: %d", res);
       return res;
     }
@@ -314,7 +345,8 @@ int publish_hadiscover() {
   return 0;
 }
 
-int publish_state_update(struct state_update *su) {
+int publish_state_update(struct state_update *su)
+{
   struct mqtt_publish_param param;
 
   char topic_name[256];
@@ -340,7 +372,8 @@ int publish_state_update(struct state_update *su) {
   int res = mqtt_publish(&client, &param);
   k_mutex_unlock(&sock_lock);
   // LOG_INF("Mutex - P - U");
-  if (res != 0) {
+  if (res != 0)
+  {
     LOG_ERR("Error - Publish Result: %d", res);
   }
 
@@ -349,13 +382,16 @@ int publish_state_update(struct state_update *su) {
 
 ZBUS_SUBSCRIBER_DEFINE(state_update_subscriber, 4);
 
-static void mqtt_subscriber_task(void) {
+static void mqtt_subscriber_task(void)
+{
   const struct zbus_channel *chan;
 
-  while (!zbus_sub_wait(&state_update_subscriber, &chan, K_FOREVER)) {
+  while (!zbus_sub_wait(&state_update_subscriber, &chan, K_FOREVER))
+  {
     struct state_update update;
 
-    if (controller->state_update_channel == chan) {
+    if (controller->state_update_channel == chan)
+    {
       zbus_chan_read(controller->state_update_channel, &update, K_FOREVER);
 
       LOG_INF("From subscriber -> %d,%d,%d", update.channel, update.state,
@@ -370,116 +406,137 @@ K_THREAD_DEFINE(subscriber_task_id, CONFIG_MAIN_STACK_SIZE,
                 mqtt_subscriber_task, NULL, NULL, NULL, 3, 0, 0);
 
 /* MQTT Message Handler */
-void mqtt_message_handler(struct mqtt_client *, const struct mqtt_evt *evt) {
+void mqtt_message_handler(struct mqtt_client *, const struct mqtt_evt *evt)
+{
   int err;
   LOG_INF("Started processing event type %d\n", evt->type);
 
-  switch (evt->type) {
-    case MQTT_EVT_CONNACK:
-      if (evt->result != 0) {
-        LOG_INF("MQTT connect failed %d\n", evt->result);
-      } else {
-        LOG_INF("MQTT client connected!\n");
-        is_connected = true;
-        err = subscribe_cmnds();
-        if (err) {
-          LOG_INF("State TOPIC Subscription request failed %d\n", err);
-        }
-        err = publish_hadiscover();
-        if (err) {
-          LOG_INF("State HA Publish failed %d\n", err);
-        }
+  switch (evt->type)
+  {
+  case MQTT_EVT_CONNACK:
+    if (evt->result != 0)
+    {
+      LOG_INF("MQTT connect failed %d\n", evt->result);
+    }
+    else
+    {
+      LOG_INF("MQTT client connected!\n");
+      is_connected = true;
+      err = subscribe_cmnds();
+      if (err)
+      {
+        LOG_INF("State TOPIC Subscription request failed %d\n", err);
       }
-      break;
-
-    case MQTT_EVT_PUBLISH:
-      const struct mqtt_publish_param *p = &evt->param.publish;
-      LOG_INF("Received message on TOPIC: %s, result=%d len=%d",
-              p->message.topic.topic.utf8, evt->result, p->message.payload.len);
-
-      // Extract the data of the recived message
-      err = get_received_payload(p->message.payload.len);
-      //  On successful extraction of data
-      if (err >= 0) {
-        data_print("Received: ", payload_buf, p->message.payload.len);
-        handle_msg_command((char *)p->message.topic.topic.utf8, payload_buf);
-        // On failed extraction of data - Payload buffer is smaller than the
-        // recived data . Increase
-      } else if (err == -EMSGSIZE) {
-        LOG_ERR(
-            "Received payload (%d bytes) is larger than the payload buffer "
-            "size (%d bytes).",
-            p->message.payload.len, sizeof(payload_buf));
-      } else {
-        LOG_ERR("get_received_payload failed: %d. Don't send any acks...", err);
-        break;
+      err = publish_hadiscover();
+      if (err)
+      {
+        LOG_INF("State HA Publish failed %d\n", err);
       }
+    }
+    break;
 
-      /* Send the appropiate QoS response */
-      if (evt->param.publish.message.topic.qos == MQTT_QOS_1_AT_LEAST_ONCE) {
-        const struct mqtt_puback_param ack = {
-            .message_id = evt->param.publish.message_id};
-        mqtt_publish_qos1_ack(&client, &ack);
-      } else if (evt->param.publish.message.topic.qos ==
-                 MQTT_QOS_2_EXACTLY_ONCE) {
-        const struct mqtt_pubrec_param rec = {
-            .message_id = evt->param.publish.message_id};
-        mqtt_publish_qos2_receive(&client, &rec);
+  case MQTT_EVT_PUBLISH:
+    const struct mqtt_publish_param *p = &evt->param.publish;
+    LOG_INF("Received message on TOPIC: %s, result=%d len=%d",
+            p->message.topic.topic.utf8, evt->result, p->message.payload.len);
+
+    // Extract the data of the recived message
+    err = get_received_payload(p->message.payload.len);
+    //  On successful extraction of data
+    if (err >= 0)
+    {
+      data_print("Received: ", payload_buf, p->message.payload.len);
+      handle_msg_command((char *)p->message.topic.topic.utf8, payload_buf);
+      // On failed extraction of data - Payload buffer is smaller than the
+      // recived data . Increase
+    }
+    else if (err == -EMSGSIZE)
+    {
+      LOG_ERR(
+          "Received payload (%d bytes) is larger than the payload buffer "
+          "size (%d bytes).",
+          p->message.payload.len, sizeof(payload_buf));
+    }
+    else
+    {
+      LOG_ERR("get_received_payload failed: %d. Don't send any acks...", err);
+      break;
+    }
+
+    /* Send the appropiate QoS response */
+    if (evt->param.publish.message.topic.qos == MQTT_QOS_1_AT_LEAST_ONCE)
+    {
+      const struct mqtt_puback_param ack = {
+          .message_id = evt->param.publish.message_id};
+      mqtt_publish_qos1_ack(&client, &ack);
+    }
+    else if (evt->param.publish.message.topic.qos ==
+             MQTT_QOS_2_EXACTLY_ONCE)
+    {
+      const struct mqtt_pubrec_param rec = {
+          .message_id = evt->param.publish.message_id};
+      mqtt_publish_qos2_receive(&client, &rec);
+    }
+    break;
+
+  case MQTT_EVT_PUBREC:
+    if (evt->param.pubrec.message_id == 1234)
+    {
+      const struct mqtt_pubrel_param rel = {.message_id =
+                                                evt->param.pubrec.message_id};
+      mqtt_publish_qos2_release(&client, &rel);
+    }
+    break;
+
+  case MQTT_EVT_PUBREL:
+    if (evt->param.pubrel.message_id == 1234)
+    {
+      const struct mqtt_pubcomp_param comp = {
+          .message_id = evt->param.pubrel.message_id};
+      err = mqtt_publish_qos2_complete(&client, &comp);
+      if (err)
+      {
+        LOG_INF("Failed to send PUBCOMP, error: %d\n", err);
       }
-      break;
+    }
+    break;
 
-    case MQTT_EVT_PUBREC:
-      if (evt->param.pubrec.message_id == 1234) {
-        const struct mqtt_pubrel_param rel = {.message_id =
-                                                  evt->param.pubrec.message_id};
-        mqtt_publish_qos2_release(&client, &rel);
-      }
-      break;
+  case MQTT_EVT_PUBCOMP:
+    if (evt->param.pubcomp.message_id == 1234)
+    {
+      LOG_INF("QoS 2 message flow completed!\n");
+    }
+    break;
 
-    case MQTT_EVT_PUBREL:
-      if (evt->param.pubrel.message_id == 1234) {
-        const struct mqtt_pubcomp_param comp = {
-            .message_id = evt->param.pubrel.message_id};
-        err = mqtt_publish_qos2_complete(&client, &comp);
-        if (err) {
-          LOG_INF("Failed to send PUBCOMP, error: %d\n", err);
-        }
-      }
+  case MQTT_EVT_SUBACK:
+    if (evt->result != 0)
+    {
+      LOG_ERR("MQTT SUBACK error %d", evt->result);
       break;
+    }
 
-    case MQTT_EVT_PUBCOMP:
-      if (evt->param.pubcomp.message_id == 1234) {
-        LOG_INF("QoS 2 message flow completed!\n");
-      }
-      break;
+    LOG_INF("SUBACK packet id: %u", evt->param.suback.message_id);
+    break;
 
-    case MQTT_EVT_SUBACK:
-      if (evt->result != 0) {
-        LOG_ERR("MQTT SUBACK error %d", evt->result);
-        break;
-      }
+  case MQTT_EVT_DISCONNECT:
+    LOG_INF("MQTT client disconnected %d", evt->result);
+    is_connected = false;
+    break;
 
-      LOG_INF("SUBACK packet id: %u", evt->param.suback.message_id);
-      break;
+  case MQTT_EVT_PINGRESP:
+    LOG_INF("PINGRESP packet");
+    break;
 
-    case MQTT_EVT_DISCONNECT:
-      LOG_INF("MQTT client disconnected %d", evt->result);
-      is_connected = false;
-      break;
-
-    case MQTT_EVT_PINGRESP:
-      LOG_INF("PINGRESP packet");
-      break;
-
-    default:
-      LOG_INF("Unhandled MQTT event %d\n", evt->type);
-      break;
+  default:
+    LOG_INF("Unhandled MQTT event %d\n", evt->type);
+    break;
   }
   LOG_INF("Done with event type %d\n", evt->type);
 }
 
 /* MQTT Thread Function */
-void mqtt_thread(void *arg1, void *arg2, void *arg3) {
+void mqtt_thread(void *arg1, void *arg2, void *arg3)
+{
   // controller_t *controller = arg2;
   int err;
   LOG_INF("Starting thread...");
@@ -499,10 +556,13 @@ void mqtt_thread(void *arg1, void *arg2, void *arg3) {
   client.client_id.size = strlen(client_id);
   LOG_INF("ClientId configured...");
 
-  // client->user_name->utf8 = (uint8_t *)username;
-  // client->user_name->size = strlen(client->user_name->utf8);
-  // client->password->utf8 = (uint8_t *)password;
-  // client->password->size = strlen(client->password->utf8);
+  client.user_name = &username_utf8;
+  client.password = &password_utf8;
+
+  // client.user_name->utf8 = username;
+  // client.user_name->size = strlen(username);
+  // client.password->utf8 = password;
+  // client.password->size = strlen(password);
   // client->client_id.utf8 = (uint8_t *)MQTT_CLIENTID;
   // client->client_id.size = strlen(MQTT_CLIENTID);
   // client->password->utf8 = (uint8_t *)MQTT_PASSWORD;
@@ -513,6 +573,15 @@ void mqtt_thread(void *arg1, void *arg2, void *arg3) {
   client.transport.type = MQTT_TRANSPORT_NON_SECURE;
 
   LOG_INF("Client stings configured...");
+
+  username_utf8.utf8 = (uint8_t *)username;
+  username_utf8.size = strlen(username);
+
+  password_utf8.utf8 = (uint8_t *)password;
+  password_utf8.size = strlen(password);
+
+  client.user_name = &username_utf8;
+  client.password = &password_utf8;
 
   /* MQTT buffers configuration */
   client.rx_buf = rx_buffer;
@@ -526,7 +595,8 @@ void mqtt_thread(void *arg1, void *arg2, void *arg3) {
 
   /* Connect to MQTT broker */
   err = mqtt_connect(&client);
-  if (err) {
+  if (err)
+  {
     LOG_INF("Unable to connect to MQTT broker\n");
     return;
   }
@@ -545,60 +615,70 @@ void mqtt_thread(void *arg1, void *arg2, void *arg3) {
   // }
 
   err = fds_init(&fds);
-  if (err) {
+  if (err)
+  {
     LOG_ERR("Error in fds_init: %d", err);
     return;
   }
 
   /* Polling and event loop */
-  while (1) {
+  while (1)
+  {
     k_mutex_lock(&sock_lock, K_FOREVER);
     // LOG_INF("Mutex - L - L");
     err = poll(&fds, 1, 500);
     // LOG_INF("Poll Done: %d", 500);
-    if (err < 0) {
+    if (err < 0)
+    {
       LOG_ERR("Error in poll(): %d", errno);
       k_mutex_unlock(&sock_lock);
       break;
     }
 
     err = mqtt_live(&client);
-    if ((err != 0) && (err != -EAGAIN)) {
+    if ((err != 0) && (err != -EAGAIN))
+    {
       LOG_ERR("Error in mqtt_live: %d", err);
       k_mutex_unlock(&sock_lock);
       break;
     }
 
-    if ((fds.revents & POLLIN) == POLLIN) {
+    if ((fds.revents & POLLIN) == POLLIN)
+    {
       LOG_INF("Input");
       err = mqtt_input(&client);
-      if (err != 0) {
+      if (err != 0)
+      {
         LOG_ERR("Error in mqtt_input: %d", err);
         break;
         k_mutex_unlock(&sock_lock);
       }
     }
 
-    if ((fds.revents & POLLERR) == POLLERR) {
+    if ((fds.revents & POLLERR) == POLLERR)
+    {
       LOG_ERR("POLLERR");
       k_mutex_unlock(&sock_lock);
       break;
     }
 
-    if ((fds.revents & POLLNVAL) == POLLNVAL) {
+    if ((fds.revents & POLLNVAL) == POLLNVAL)
+    {
       LOG_ERR("POLLNVAL");
       k_mutex_unlock(&sock_lock);
       break;
     }
     k_mutex_unlock(&sock_lock);
 
-    if (!is_connected) {
+    if (!is_connected)
+    {
       mqtt_abort(&client);
     }
   }
 }
 
-int mqtt_thread_init(controller_t *ctrl) {
+int mqtt_thread_init(controller_t *ctrl)
+{
   controller = ctrl;
   mqtt_client_init(&client);
   /* Initialize MQTT client */
